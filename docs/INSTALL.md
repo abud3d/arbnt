@@ -1,6 +1,6 @@
 # ARBNT v0.3.0 — limited server trial
 
-The community MVP now supports **administrator login, creating posts, public reading, and logged-in replies**, with JSON storage and no database. **This is not production-ready for arbitrary customers.** Public registration, moderation, user management, account recovery, backups, and security/load testing remain.
+The community MVP now supports **administrator and member login, public registration, creating posts, public reading, and logged-in replies, plus basic admin moderation**, with JSON storage and no database. **This is not production-ready for arbitrary customers.** Account recovery, email verification, spam controls, backup tooling, and security/load testing remain.
 
 ## Trial setup
 1. Use a fresh isolated domain DocumentRoot on Apache with PHP 8.3+.
@@ -13,8 +13,8 @@ The community MVP now supports **administrator login, creating posts, public rea
 8. Use HTTPS, restrict trial access to trusted testers and back up the private JSON directory.
 
 ## Limitations
-- Only the installer-created admin can log in; **there is no public registration yet**.
-- Anyone can read posts and replies; only the admin can publish and reply.
+- Public registration is enabled without email verification. Limit access to trusted testers until anti-spam and email verification are implemented.
+- Anyone can read posts and replies; logged-in members can publish and reply. The administrator can ban members and delete posts/comments.
 - All posts are plain text; no HTML, files or attachments.
 - Do not delete or overwrite `arbnt-private` on code upgrades.
 - Never run the installer inside a shared document root or with an exposed private storage path.
