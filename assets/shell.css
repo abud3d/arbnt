@@ -24,3 +24,7 @@
 .arb-brand-copy{gap:3px}
 .arb-brand-copy strong,.arb-brand-copy small{font-size:19px;font-weight:700;line-height:1.15;letter-spacing:0}
 @media(max-width:550px){.arb-brand-copy strong,.arb-brand-copy small{font-size:15px}}
+
+/* Keep ARBNT prominent; reduce the Arabic tagline's visual size. */
+.arb-brand-copy small{font-size:15px;font-weight:600;line-height:1.15}
+@media(max-width:550px){.arb-brand-copy small{font-size:12px}}
