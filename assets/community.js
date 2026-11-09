@@ -1,7 +1,7 @@
 /* ARBNT community: native browser APIs only */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-let csrf='',account=null,page=1,total=0;
+let csrf='',account=null,page=1,total=0,view='all',communityFilter='',favorites=new Set(),communities=[];
 const endpoint='api/community.php?action=';
 function message(t){$('notice').textContent=t}
 async function api(action,body){
@@ -11,11 +11,17 @@ async function api(action,body){
  const v=await r.json();if(!r.ok)throw Error(v.error||'خطأ في الاتصال');return v;
 }
 function element(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}
+function ago(value){const n=Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/1000));if(!Number.isFinite(n))return '';if(n<60)return 'الآن';if(n<3600)return 'منذ '+Math.floor(n/60)+' دقيقة';if(n<86400)return 'منذ '+Math.floor(n/3600)+' ساعة';if(n<2592000)return 'منذ '+Math.floor(n/86400)+' يوم';return new Date(value).toLocaleDateString('ar-SA')}
+async function refreshCommunities(){try{communities=(await api('communities')).items||[];const select=$('postCommunity');select.replaceChildren(new Option('عام',''),...communities.map(x=>new Option(x.name,x.id)));const area=$('communitiesList');area.replaceChildren();for(const cm of communities){const b=element('button',cm.name+' — '+(cm.description||''));b.type='button';b.onclick=()=>{communityFilter=cm.id;view='all';switchView('all')};area.append(b)}}catch(e){message(e.message)}}
+async function refreshFavorites(){if(!account){favorites=new Set();return}try{favorites=new Set((await api('favorites')).ids||[])}catch(e){message(e.message)}}
+function switchView(next){view=next;$('profilePanel').classList.toggle('hidden',next!=='profile');$('communitiesPanel').classList.toggle('hidden',next!=='communities');$('feed').parentElement.querySelector('#feedTitle').textContent=next==='favorites'?'المفضلة':communityFilter?'منشورات المجتمع':'المنشورات';$('feed').classList.toggle('hidden',!['all','favorites'].includes(next));$('previous').parentElement.classList.toggle('hidden',!['all','favorites'].includes(next));$('editor').classList.toggle('hidden',!account||next!=='publish');$('adminPanel').classList.toggle('hidden',account?.role!=='admin'||next!=='admin');if(next==='profile'&&account)showProfile(account.username);if(next==='all'||next==='favorites')load();if(next==='admin'&&account?.role==='admin')loadAdmin();if(next==='communities')refreshCommunities();if(next==='publish'&&!account)message('سجل الدخول أولاً')}
+async function showProfile(name){try{const v=await api('profile&username='+encodeURIComponent(name));$('profileSummary').textContent=v.profile.username+' · '+ago(v.profile.created_at)+' · '+v.profile.posts+' منشور · '+(v.profile.bio||'');$('profileForm').classList.toggle('hidden',!account||account.username!==name);$('profileForm').elements.bio.value=v.profile.bio||'';$('profilePosts').replaceChildren(...v.items.map(p=>element('div',p.title+' · '+ago(p.created_at))))}catch(e){message(e.message)}}
 function renderUser(){
  $('loginPanel').classList.toggle('hidden',!!account);
- $('editor').classList.toggle('hidden',!account);
+ $('editor').classList.toggle('hidden',!account||view!=='publish');
+ $('communityForm').classList.toggle('hidden',!account);
  if(account)$('welcome').textContent='مرحباً '+account.username;
- $('adminPanel').classList.toggle('hidden',account?.role!=='admin');
+ $('adminPanel').classList.toggle('hidden',account?.role!=='admin'||view!=='admin');
  if(account?.role==='admin')loadAdmin();
 }
 async function loadAdmin(){
@@ -37,15 +43,23 @@ async function loadAdmin(){
   }
  }catch(e){message(e.message)}
 }
-async function session(){try{const s=await api('session');csrf=s.csrf;account=s.user;renderUser()}catch(e){message(e.message)}}
+async function session(){try{const s=await api('session');csrf=s.csrf;account=s.user;renderUser();await refreshFavorites();await refreshCommunities()}catch(e){message(e.message)}}
 async function load(){
  const feed=$('feed');feed.replaceChildren(element('p','جارٍ التحميل…'));
  try{
-  const data=await api('posts&page='+page);total=data.total;
+  const data=view==='favorites'?await api('favorites'):await api('posts&page='+page+(communityFilter?'&community='+encodeURIComponent(communityFilter):''));total=data.total??data.items.length;
   feed.replaceChildren();
   if(!data.items.length)feed.append(element('p','لا توجد منشورات بعد.'));
   for(const p of data.items){
-   const a=element('article');a.append(element('h2',p.title),element('small','بواسطة '+p.author+' · '+new Date(p.created_at).toLocaleString('ar-SA')),element('p',p.text));
+   const a=element('article'),row=element('div',undefined,'post-row'),body=element('div',undefined,'post-body');
+   if(p.image){const img=element('img');img.src=p.image;img.alt='صورة الموضوع';img.loading='lazy';img.referrerPolicy='no-referrer';row.append(img)}
+   const author=element('button',p.author);author.type='button';author.onclick=()=>{view='profile';switchView('profile');showProfile(p.author)};
+   const meta=element('div',undefined,'row');meta.append(author,element('small',ago(p.created_at)));
+   const cm=communities.find(x=>x.id===p.community_id);if(cm)meta.append(element('span',cm.name,'tag'));
+   body.append(element('h2',p.title),meta,element('p',p.text));
+   const actions=element('div',undefined,'post-actions');
+   if(account){const fav=element('button',favorites.has(p.id)?'♥ محفوظ':'♡ حفظ');fav.type='button';fav.onclick=async()=>{try{const v=await api('favorite',{id:p.id});if(v.saved)favorites.add(p.id);else favorites.delete(p.id);fav.textContent=v.saved?'♥ محفوظ':'♡ حفظ';if(view==='favorites')load()}catch(e){message(e.message)}};actions.append(fav)}
+   body.append(actions);row.append(body);a.append(row);
    const toggle=element('button','عرض الردود');toggle.type='button';
    const replies=element('div');replies.hidden=true;
    toggle.onclick=async()=>{
@@ -71,7 +85,7 @@ async function load(){
    }feed.append(a);
   }
   $('pages').textContent=page+' / '+Math.max(1,Math.ceil(total/20));
-  $('previous').disabled=page===1;$('next').disabled=page*20>=total;
+  $('previous').disabled=page===1||view==='favorites';$('next').disabled=page*20>=total||view==='favorites';
  }catch(e){feed.replaceChildren(element('p',e.message))}
 }
 $('registerForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const b=new FormData(form);try{await api('register',{username:b.get('username'),email:b.get('email'),password:b.get('password')});form.reset();message('تم إنشاء العضوية. راجع بريدك لتفعيلها قبل تسجيل الدخول.')}catch(err){message(err.message)}};
@@ -80,12 +94,15 @@ $('forgotForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget
 $('resetForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const b=new FormData(form);try{await api('reset',{token:b.get('token'),password:b.get('password')});history.replaceState({},'',location.pathname);$('resetForm').classList.add('hidden');message('تم تحديث كلمة المرور')}catch(err){message(err.message)}};
 $('loginForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const b=new FormData(form);try{const v=await api('login',{username:b.get('username'),password:b.get('password')});account=v.user;csrf=v.csrf;renderUser();form.reset();message('تم تسجيل الدخول');await load()}catch(err){message(err.message)}};
 $('logout').onclick=async()=>{try{await api('logout',{});account=null;await session();message('تم تسجيل الخروج');await load()}catch(e){message(e.message)}};
-$('postForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const b=new FormData(form);try{await api('post',{title:b.get('title'),text:b.get('text')});form.reset();page=1;message('تم نشر الموضوع');await load()}catch(err){message(err.message)}};
+$('postForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const b=new FormData(form);try{await api('post',{title:b.get('title'),text:b.get('text'),image:b.get('image'),community_id:b.get('community_id')});form.reset();page=1;message('تم نشر الموضوع');await load()}catch(err){message(err.message)}};
+$('communityForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,b=new FormData(form);try{await api('community-create',{name:b.get('name'),slug:b.get('slug'),description:b.get('description')});form.reset();message('تم إنشاء المجتمع');await refreshCommunities()}catch(err){message(err.message)}};
+$('profileForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,b=new FormData(form);try{await api('profile-update',{bio:b.get('bio')});message('تم حفظ الملف');await showProfile(account.username)}catch(err){message(err.message)}};
+document.querySelectorAll('[data-view]').forEach(btn=>btn.onclick=()=>{if(btn.dataset.view==='all')communityFilter='';switchView(btn.dataset.view)});
 $('previous').onclick=()=>{if(page>1){page--;load()}};
 $('next').onclick=()=>{if(page*20<total){page++;load()}};
 const theme=$('theme'),lang=$('lang');
 try{document.documentElement.dataset.theme=localStorage.getItem('arbnt-theme')||'light'}catch(e){}
 if(theme)theme.onclick=()=>{const v=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=v;try{localStorage.setItem('arbnt-theme',v)}catch(e){}};
 if(lang)lang.onclick=()=>{message('واجهة المجتمع العربية حالياً، الترجمة قيد التطوير')};
-session().then(async()=>{const q=new URLSearchParams(location.search);if(q.has('verify')){try{await api('verify',{token:q.get('verify')});message('تم تفعيل بريدك. يمكنك الدخول الآن.')}catch(e){message(e.message)}history.replaceState({},'',location.pathname)}if(q.has('reset')){$('resetForm').classList.remove('hidden');$('resetForm').elements.token.value=q.get('reset')}await load()});
+session().then(async()=>{const q=new URLSearchParams(location.search);if(q.has('verify')){try{await api('verify',{token:q.get('verify')});message('تم تفعيل بريدك. يمكنك الدخول الآن.')}catch(e){message(e.message)}history.replaceState({},'',location.pathname)}if(q.has('reset')){$('resetForm').classList.remove('hidden');$('resetForm').elements.token.value=q.get('reset')}switchView('all')});
 })();
