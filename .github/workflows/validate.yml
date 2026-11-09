@@ -1,0 +1,33 @@
+name: Validate ARBNT
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: none
+      - name: PHP syntax checks
+        run: |
+          find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+      - name: JavaScript syntax checks
+        run: |
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+      - name: Essential files
+        run: |
+          test -f index.html
+          test -f community.html
+          test -f admin.html
+          test -f install.php
+          test -f setup.php
+          test -f api/community.php
+          test -f assets/admin.css
+          test -f assets/admin.js
+          test -f assets/community.css
+          test -f assets/community.js
