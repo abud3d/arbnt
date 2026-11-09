@@ -20,7 +20,9 @@ function renderUser(){
 }
 async function loadAdmin(){
  try{
-  const [s,u,logs]=await Promise.all([api('admin-stats'),api('admin-users'),api('admin-security')]);
+  const [s,u,logs,storage]=await Promise.all([api('admin-stats'),api('admin-users'),api('admin-security'),api('admin-storage')]);
+  $('storageStatus').textContent='موقع التخزين: '+storage.path_label+' — '+(storage.mode==='outside'?'حماية أعلى':'حماية قياسية');
+  $('storageMigrationForm').classList.toggle('hidden',!storage.can_migrate);
   $('securityEvents').replaceChildren(...logs.items.filter(Boolean).slice(0,20).map(v=>element('div',v.at+' · '+v.event+' · '+(v.subject||''))));
   $('stats').textContent='الأعضاء: '+s.users+' | المواضيع: '+s.posts+' | الردود: '+s.comments;
   const area=$('members');area.replaceChildren();
@@ -73,6 +75,7 @@ async function load(){
  }catch(e){feed.replaceChildren(element('p',e.message))}
 }
 $('registerForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('register',{username:b.get('username'),email:b.get('email'),password:b.get('password')});e.currentTarget.reset();message('تم إنشاء العضوية. راجع بريدك لتفعيلها قبل تسجيل الدخول.')}catch(err){message(err.message)}};
+$('storageMigrationForm').onsubmit=async e=>{e.preventDefault();if(!confirm('هل توافق على نسخ البيانات والتحقق منها ثم التحويل إلى التخزين الخارجي؟'))return;const btn=e.currentTarget.querySelector('button');btn.disabled=true;try{const b=new FormData(e.currentTarget);const v=await api('admin-storage-migrate',{password:b.get('password')});message(v.notice||'تم نقل البيانات');e.currentTarget.reset();await loadAdmin()}catch(err){message(err.message)}finally{btn.disabled=false}};
 $('forgotForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('forgot',{email:b.get('email')});message('إذا كان البريد مسجلاً، فسيصلك رابط الاستعادة.')}catch(err){message(err.message)}};
 $('resetForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('reset',{token:b.get('token'),password:b.get('password')});history.replaceState({},'',location.pathname);$('resetForm').classList.add('hidden');message('تم تحديث كلمة المرور')}catch(err){message(err.message)}};
 $('loginForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{const v=await api('login',{username:b.get('username'),password:b.get('password')});account=v.user;csrf=v.csrf;renderUser();e.currentTarget.reset();message('تم تسجيل الدخول');await load()}catch(err){message(err.message)}};
