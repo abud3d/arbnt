@@ -2,11 +2,15 @@
 declare(strict_types=1);
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store');
-$private=dirname(__DIR__).'/arbnt-private';
+$docroot=realpath((string)($_SERVER['DOCUMENT_ROOT']??''));$root=realpath(__DIR__);
+$base=$docroot&&$root&&($root===$docroot||str_starts_with($root,$docroot.'/'))?$docroot:__DIR__;
+$private=dirname($base).'/arbnt-private';
+$appOutside=dirname($base).'/arbnt-app';
+$appPointer=__DIR__.'/.arbnt-app.php';
 $local=__DIR__.'/storage';
 $pointer=__DIR__.'/.arbnt-storage.php';
 if(is_file($pointer)){ $selected=require $pointer; if(in_array($selected,[$private,$local],true))$private=$selected; }
-$installed=is_file($private.'/installed.lock')||is_file($local.'/installed.lock')||is_file(dirname(__DIR__).'/arbnt-private/installed.lock');
+$installed=is_file($private.'/installed.lock')||is_file($local.'/installed.lock')||is_file(dirname($base).'/arbnt-private/installed.lock');
 $mode='';
 if(session_status()!==PHP_SESSION_ACTIVE)session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Strict','use_strict_mode'=>true]);
 if(empty($_SESSION['install_token']))$_SESSION['install_token']=bin2hex(random_bytes(24));
@@ -20,6 +24,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
  if(strlen($site)<2||strlen($site)>100)$errors[]='Site name must be 2-100 bytes';
  if(!preg_match('/^[a-zA-Z0-9_]{3,32}$/',$user))$errors[]='Username must be 3-32 letters, digits or underscores';
  if(strlen($pass)<12||strlen($pass)>256)$errors[]='Password must be 12-256 characters';
+ if(!$errors){
+  if(!is_file(__DIR__.'/app/core.php'))$errors[]='ملفات المحرك غير موجودة';
+  if(is_link($appOutside)||(!is_dir($appOutside)&&!@mkdir($appOutside,0700,true)))$errors[]='لا يمكن إنشاء مجلد المحرك خارج الموقع';
+  if(!$errors&&(is_file($appOutside.'/core.php')||is_file($appPointer)))$errors[]='يوجد محرك سابق، يلزم مراجعة التثبيت';
+ }
  if(!$errors){
   if(is_dir($private)||@mkdir($private,0700,true)){$mode='outside';}
   else {
@@ -60,11 +69,17 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
     try{fwrite($fp,json_encode($data,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR));}finally{fclose($fp);}
     chmod($file,0600);
    }
+   $sourceCore=__DIR__.'/app/core.php';$targetCore=$appOutside.'/core.php';
+   if(!@copy($sourceCore,$targetCore)||hash_file('sha256',$sourceCore)!==hash_file('sha256',$targetCore))throw new RuntimeException('App core verification failed');
+   @chmod($targetCore,0600);
+   $appValue='<?php return '.var_export($appOutside,true).';';
+   if(@file_put_contents($appPointer,$appValue,LOCK_EX)!==strlen($appValue))throw new RuntimeException('Cannot activate private app');
+   @chmod($appPointer,0600);
    if(file_put_contents($private.'/installed.lock',gmdate('c'),LOCK_EX)===false)throw new RuntimeException('Lock failed');
    if(@file_put_contents($pointer,'<?php return '.var_export($private,true).';',LOCK_EX)===false)throw new RuntimeException('Cannot save storage location');
    @chmod($pointer,0600);
-   chmod($private.'/installed.lock',0600);$done=true;
+   chmod($private.'/installed.lock',0600);$done=true;@unlink(__DIR__.'/app/core.php');
   }catch(Throwable $e){$errors[]='Installation incomplete: '.esc($e->getMessage()).'. Remove incomplete private files before retrying.';}
  }
 }
-?><!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تثبيت ARBNT</title><style>body{font:16px/1.8 system-ui;background:#f5f7fa;color:#202b36;margin:0;padding:5vh 16px}main{max-width:520px;background:white;border:1px solid #ddd;border-radius:12px;padding:28px;margin:auto}label{display:block;margin:14px 0}input{display:block;width:100%;padding:12px;border:1px solid #bbb;border-radius:6px;box-sizing:border-box}button{background:#075e9e;color:white;border:0;border-radius:6px;padding:12px 22px;cursor:pointer}.error{color:#9b2020}</style><main><h1>ARBNT · شبكة العرب</h1><p>معالج التثبيت الأولي — PHP وJSON دون قاعدة بيانات</p><p>يفضل المثبت تخزين البيانات خارج الموقع. إذا تعذر ذلك، يستخدم مجلد storage المحمي فقط بعد اختبار منع الوصول إليه فعلياً. إذا لم تثبت الحماية، يتوقف التثبيت.</p><?php if($done):?><p>موقع التخزين: <?=esc($mode==='outside'?'خارج الموقع — حماية أعلى':'داخل storage — حماية قياسية تم اختبارها')?></p><?php endif;?><?php if($installed||$done):?><p>تم التثبيت أو سبق تثبيت الموقع. أغلق صفحة التثبيت واحذف install.php بعد التحقق.</p><a href="index.html">فتح الموقع</a><?php else:foreach($errors as $e):?><p class="error"><?=esc($e)?></p><?php endforeach;?><form method="post"><input type="hidden" name="csrf" value="<?=esc($_SESSION['install_token'])?>"><label>اسم المجتمع<input name="site" required maxlength="100" value="<?=esc((string)($_POST['site']??'شبكة العرب'))?>"></label><label>اسم المدير<input name="username" required minlength="3" maxlength="32" autocomplete="username"></label><label>كلمة المرور (12 حرفاً على الأقل)<input type="password" name="password" required minlength="12" autocomplete="new-password"></label><button>تثبيت</button></form><?php endif;?></main></html>
+?><!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تثبيت ARBNT</title><style>body{font:16px/1.8 system-ui;background:#f5f7fa;color:#202b36;margin:0;padding:5vh 16px}main{max-width:520px;background:white;border:1px solid #ddd;border-radius:12px;padding:28px;margin:auto}label{display:block;margin:14px 0}input{display:block;width:100%;padding:12px;border:1px solid #bbb;border-radius:6px;box-sizing:border-box}button{background:#075e9e;color:white;border:0;border-radius:6px;padding:12px 22px;cursor:pointer}.error{color:#9b2020}</style><main><h1>ARBNT · شبكة العرب</h1><p>معالج التثبيت الأولي — PHP وJSON دون قاعدة بيانات</p><p>يحفظ المثبت محرك PHP خارج المجلد العام، ويفضل تخزين البيانات خارج الموقع. إذا تعذر ذلك، يستخدم مجلد storage المحمي فقط بعد اختبار منع الوصول إليه فعلياً. إذا لم تثبت الحماية، يتوقف التثبيت.</p><?php if($done):?><p>موقع التخزين: <?=esc($mode==='outside'?'خارج الموقع — حماية أعلى':'داخل storage — حماية قياسية تم اختبارها')?></p><?php endif;?><?php if($installed||$done):?><p>تم التثبيت أو سبق تثبيت الموقع. أغلق صفحة التثبيت واحذف install.php بعد التحقق.</p><a href="index.html">فتح الموقع</a><?php else:foreach($errors as $e):?><p class="error"><?=esc($e)?></p><?php endforeach;?><form method="post"><input type="hidden" name="csrf" value="<?=esc($_SESSION['install_token'])?>"><label>اسم المجتمع<input name="site" required maxlength="100" value="<?=esc((string)($_POST['site']??'شبكة العرب'))?>"></label><label>اسم المدير<input name="username" required minlength="3" maxlength="32" autocomplete="username"></label><label>كلمة المرور (12 حرفاً على الأقل)<input type="password" name="password" required minlength="12" autocomplete="new-password"></label><button>تثبيت</button></form><?php endif;?></main></html>
