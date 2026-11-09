@@ -1,0 +1,28 @@
+name: Foundation documentation checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Validate foundation files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required documents
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in README.md AGENTS.md docs/ARCHITECTURE.md; do
+            test -s "$file" || { echo "Missing or empty: $file"; exit 1; }
+            echo "OK: $file"
+          done
+          grep -q 'Foundation' README.md
+          grep -q 'Foundation' AGENTS.md
+          echo "Foundation documentation checks passed"
