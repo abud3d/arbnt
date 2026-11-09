@@ -50,7 +50,7 @@ function token():void{
  $origin=(string)($_SERVER['HTTP_ORIGIN']??'');
  if($origin){
   $o=parse_url($origin);
-  if(!is_array($o)||strcasecmp((string)($o['host']??''),(string)($_SERVER['HTTP_HOST']??''))!==0)out(403,['error'=>'مصدر الطلب غير مسموح']);
+  if(!is_array($o)||strcasecmp((string)($o['host']??''),(string)parse_url('http://'.($_SERVER['HTTP_HOST']??''),PHP_URL_HOST))!==0)out(403,['error'=>'مصدر الطلب غير مسموح']);
  }
 }
 function throttle(string $key,int $seconds):void{
@@ -71,11 +71,13 @@ try{
   if($action==='admin-stats'){admin();out(200,['users'=>count(arbnt_read('users')),'posts'=>count(arbnt_read('posts')),'comments'=>count(arbnt_read('comments'))]);}
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
   if($action==='posts'){
+   throttle('read:'.($_SERVER['REMOTE_ADDR']??'unknown'),1);
    $posts=arbnt_read('posts');$posts=array_reverse($posts);
    $page=max(1,min(100000,(int)($_GET['page']??1)));
    out(200,['items'=>array_slice($posts,($page-1)*20,20),'total'=>count($posts),'page'=>$page]);
   }
   if($action==='comments'){
+   throttle('read:'.($_SERVER['REMOTE_ADDR']??'unknown'),1);
    $id=(string)($_GET['post']??'');
    out(200,['items'=>array_values(array_filter(arbnt_read('comments'),fn($c)=>($c['post_id']??'')===$id))]);
   }
@@ -120,7 +122,8 @@ try{
  }
  if($action==='login'){
   throttle('login:'.($_SERVER['REMOTE_ADDR']??'unknown'),2);
-  $name=clean($b['username']??'',32);$password=(string)($b['password']??'');
+  $name=clean($b['username']??'',32);
+  throttle('account:'.strtolower($name),3);$password=(string)($b['password']??'');
   $match=null;
   foreach(arbnt_read('users') as $u){if(hash_equals($u['username'],$name)&&password_verify($password,$u['password_hash'])){$match=$u;break;}}
   if(!$match||!empty($match['banned'])){audit('login_failed',$name);out(401,['error'=>'بيانات الدخول غير صحيحة']);}
