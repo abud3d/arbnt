@@ -20,7 +20,8 @@ function renderUser(){
 }
 async function loadAdmin(){
  try{
-  const [s,u]=await Promise.all([api('admin-stats'),api('admin-users')]);
+  const [s,u,logs]=await Promise.all([api('admin-stats'),api('admin-users'),api('admin-security')]);
+  $('securityEvents').replaceChildren(...logs.items.filter(Boolean).slice(0,20).map(v=>element('div',v.at+' · '+v.event+' · '+(v.subject||''))));
   $('stats').textContent='الأعضاء: '+s.users+' | المواضيع: '+s.posts+' | الردود: '+s.comments;
   const area=$('members');area.replaceChildren();
   for(const member of u.items){
@@ -71,7 +72,9 @@ async function load(){
   $('previous').disabled=page===1;$('next').disabled=page*20>=total;
  }catch(e){feed.replaceChildren(element('p',e.message))}
 }
-$('registerForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('register',{username:b.get('username'),password:b.get('password')});e.currentTarget.reset();message('تم إنشاء العضوية. يمكنك تسجيل الدخول الآن.')}catch(err){message(err.message)}};
+$('registerForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('register',{username:b.get('username'),email:b.get('email'),password:b.get('password')});e.currentTarget.reset();message('تم إنشاء العضوية. راجع بريدك لتفعيلها قبل تسجيل الدخول.')}catch(err){message(err.message)}};
+$('forgotForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('forgot',{email:b.get('email')});message('إذا كان البريد مسجلاً، فسيصلك رابط الاستعادة.')}catch(err){message(err.message)}};
+$('resetForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('reset',{token:b.get('token'),password:b.get('password')});history.replaceState({},'',location.pathname);$('resetForm').classList.add('hidden');message('تم تحديث كلمة المرور')}catch(err){message(err.message)}};
 $('loginForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{const v=await api('login',{username:b.get('username'),password:b.get('password')});account=v.user;csrf=v.csrf;renderUser();e.currentTarget.reset();message('تم تسجيل الدخول');await load()}catch(err){message(err.message)}};
 $('logout').onclick=async()=>{try{await api('logout',{});account=null;await session();message('تم تسجيل الخروج');await load()}catch(e){message(e.message)}};
 $('postForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('post',{title:b.get('title'),text:b.get('text')});e.currentTarget.reset();page=1;message('تم نشر الموضوع');await load()}catch(err){message(err.message)}};
@@ -81,5 +84,5 @@ const theme=$('theme'),lang=$('lang');
 try{document.documentElement.dataset.theme=localStorage.getItem('arbnt-theme')||'light'}catch(e){}
 if(theme)theme.onclick=()=>{const v=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=v;try{localStorage.setItem('arbnt-theme',v)}catch(e){}};
 if(lang)lang.onclick=()=>{message('واجهة المجتمع العربية حالياً، الترجمة قيد التطوير')};
-session().then(load);
+session().then(async()=>{const q=new URLSearchParams(location.search);if(q.has('verify')){try{await api('verify',{token:q.get('verify')});message('تم تفعيل بريدك. يمكنك الدخول الآن.')}catch(e){message(e.message)}history.replaceState({},'',location.pathname)}if(q.has('reset')){$('resetForm').classList.remove('hidden');$('resetForm').elements.token.value=q.get('reset')}await load()});
 })();
