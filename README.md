@@ -1,29 +1,46 @@
-# ARBNT — The Arab Web Platform
+# ARBNT — شبكة العرب
 
-**Stage:** Foundation — Planning & Architecture  
-**Website:** https://arbnt.com
+**الإصدار:** 0.5.0  
+**المستودع:** abud3d/arbnt  
+**المتطلبات:** PHP 8.3+، HTTPS، JSON، ولا يلزم MySQL أو Node أو Composer.
 
-ARBNT is an Arabic-first, lightweight, secure, modular web platform.
+ARBNT مشروع مجتمع عربي خفيف، يتكون من صفحة تعريفية صامتة، وواجهة منشورات ومجتمعات، ولوحة إدارة مستقلة بنفس الهوية البصرية الهادئة.
 
-**Vision:** One Core. Unlimited Possibilities.
+## الصفحات
 
-## Principles
-- Native PHP 8.3+, HTML and lightweight CSS; optional vanilla JavaScript.
-- Zero mandatory frameworks, Composer dependencies or databases.
-- JSON/file storage by default; optional SQL adapters.
-- Unified objects, relations, capabilities, permissions and configurable layouts.
-- Static-first public rendering and safe caching.
-- Security, privacy and Arabic RTL support by design.
+- `index.html` — الواجهة الأصلية الصامتة.
+- `community.html` — المنشورات والردود، الحسابات، الملف الشخصي، المفضلة، والمجتمعات.
+- `admin.html` — لوحة مدير مخصصة لـARBNT.
+- `setup.php` أو `install.php` — معالج التثبيت الأولي.
 
-## Foundation roadmap
-1. Architecture and threat model.
-2. Object and storage contracts.
-3. Users, roles and permissions.
-4. Pages, blocks and layouts.
-5. Messaging and support tickets.
-6. Optional services, orders, reviews and bookings.
-7. Testing, installation and release planning.
+## وظائف لوحة الإدارة
 
-Read [architecture](docs/ARCHITECTURE.md) and [agent guide](AGENTS.md).
+- مؤشرات حقيقية: الأعضاء والمنشورات والردود والمجتمعات والحسابات غير المفعلة والمحظورة.
+- رسوم نشاط 14 يوماً، وتوزيع المنشورات والردود، والمجتمعات الأكثر نشراً.
+- إدارة الأعضاء: بحث، حظر، رفع حظر، وتفعيل الحسابات بعد التحقق.
+- إدارة المحتوى: بحث، ترقيم صفحات، تعديل/حذف المنشورات وحذف الردود.
+- إدارة المجتمعات: إنشاء وتعريف وتعديل وحذف المجتمع الخالي.
+- إعدادات اسم الموقع ووصف واجهة المجتمع.
+- تنبيهات محددة، سجل الأحداث الأمنية، وحالة التخزين.
+- صفحة تعريفات تشرح المؤشرات وحدودها. لا توجد إحصاءات زيارات مزعومة.
 
-**No production release exists.** Documentation only at this stage; implementation and deployment require explicit approval. License selection is deferred.
+## معمارية مختصرة
+
+- PHP أصلي، صفحات HTML، CSS وJavaScript دون أطر عمل.
+- بيانات JSON خارج `public_html` عندما تسمح الاستضافة، مع حماية/فحص التخزين الداخلي الاحتياطي.
+- التفويض الإداري والتحقق من CSRF وإجراءات البيانات داخل `api/community.php`.
+- لا تتطلب لوحة الإدارة خدمة خارجية للرسوم البيانية.
+
+## التثبيت والتحديث
+
+اتبع **[DEPLOY.md](DEPLOY.md)**. احرص على رفع محتويات ZIP إلى مجلد موقع واحد فقط، وافتح `setup.php` لإجراء **تثبيت جديد**.
+
+**تنبيه البيانات:** حذف `arbnt-private` يعني فقدان الحسابات والمنشورات القديمة ما لم تتوفر نسخة احتياطية. لا تحذف المجلد من تثبيت قائم.
+
+## الفحوصات
+
+يوجد مسار GitHub Actions في `.github/workflows/validate.yml` لفحص بناء PHP/JavaScript ووجود الملفات الأساسية. هذا ليس بديلاً عن اختبار الاستضافة الفعلية.
+
+## خارطة الطريق
+
+أفكار لاحقة قيد التخطيط: الرسائل والتذاكر والخدمات والحجوزات والتكاملات الاختيارية. هذه **ليست وظائف منفذة** في الإصدار الحالي.
