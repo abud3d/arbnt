@@ -78,10 +78,19 @@ try{
   if($action==='session')out(200,['user'=>user(),'csrf'=>$_SESSION['arbnt_csrf']]);
   if($action==='admin-storage'){admin();out(200,arbnt_storage_status());}
   if($action==='admin-security'){admin();$file=arbnt_data_dir().'/security.log';$lines=is_file($file)?array_slice(file($file,FILE_IGNORE_NEW_LINES)?:[],-50):[];out(200,['items'=>array_map(fn($v)=>json_decode($v,true),array_reverse($lines))]);}
-  if($action==='admin-stats'){admin();out(200,['users'=>count(arbnt_read('users')),'posts'=>count(arbnt_read('posts')),'comments'=>count(arbnt_read('comments'))]);}
+  if($action==='admin-stats'){admin();out(200,['users'=>count(arbnt_read('users')),'posts'=>count(arbnt_read('posts')),'comments'=>count(arbnt_read('comments')),'communities'=>count(arbnt_read('communities'))]);}
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
+  if($action==='communities')out(200,['items'=>arbnt_read('communities')]);
+  if($action==='profile'){
+   $name=(string)($_GET['username']??'');$found=null;
+   foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),$name)===0){$found=$member;break;}
+   if(!$found)out(404,['error'=>'العضو غير موجود']);
+   $items=array_values(array_filter(arbnt_read('posts'),fn($p)=>($p['author_id']??'')===($found['id']??'')));
+   out(200,['profile'=>['username'=>$found['username'],'bio'=>$found['bio']??'','created_at'=>$found['created_at']??'','posts'=>count($items)],'items'=>array_reverse($items)]);
+  }
+  if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');out(200,['ids'=>$mine,'items'=>array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)))]);}
   if($action==='posts'){
-   $posts=arbnt_read('posts');$posts=array_reverse($posts);
+   $posts=arbnt_read('posts');$community=(string)($_GET['community']??'');if($community!=='')$posts=array_values(array_filter($posts,fn($p)=>($p['community_id']??'')===$community));$posts=array_reverse($posts);
    $page=max(1,min(100000,(int)($_GET['page']??1)));
    out(200,['items'=>array_slice($posts,($page-1)*20,20),'total'=>count($posts),'page'=>$page]);
   }
@@ -168,9 +177,32 @@ try{
   out(200,['ok'=>true]);
  }
 
+ if($action==='favorite'){
+  $id=clean($b['id']??'',64);$found=false;foreach(arbnt_read('posts') as $p)if(($p['id']??'')===$id)$found=true;
+  if(!$found)out(404,['error'=>'المنشور غير موجود']);
+  $saved=false;arbnt_write('favorites',function($items)use($id,$u,&$saved){foreach($items as $i=>$item)if(($item['user_id']??'')===$u['id']&&($item['post_id']??'')===$id){unset($items[$i]);return array_values($items);} $items[]=['user_id'=>$u['id'],'post_id'=>$id];$saved=true;return $items;});
+  out(200,['saved'=>$saved]);
+ }
+ if($action==='profile-update'){
+  $bio=trim((string)($b['bio']??''));if(strlen($bio)>500||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$bio))out(422,['error'=>'نبذة غير صالحة']);
+  arbnt_write('users',function($items)use($u,$bio){foreach($items as &$item)if($item['id']===$u['id'])$item['bio']=$bio;unset($item);return $items;});out(200,['ok'=>true]);
+ }
+ if($action==='community-create'){
+  $name=clean($b['name']??'',80);$description=trim((string)($b['description']??''));
+  if(strlen($description)>500)out(422,['error'=>'وصف طويل']);
+  $slug=strtolower(trim((string)($b['slug']??'')));if(!preg_match('/^[a-z0-9-]{3,40}$/',$slug))out(422,['error'=>'المعرف 3-40 حرفاً إنجليزياً أو رقماً أو شرطة']);
+  $created=null;arbnt_write('communities',function($items)use($name,$description,$slug,$u,&$created){foreach($items as $item)if(($item['slug']??'')===$slug)return $items;$created=['id'=>bin2hex(random_bytes(12)),'slug'=>$slug,'name'=>$name,'description'=>$description,'owner_id'=>$u['id'],'created_at'=>gmdate('c')];$items[]=$created;return $items;});
+  if(!$created)out(409,['error'=>'معرف المجتمع مستخدم']);out(201,['item'=>$created]);
+ }
  if($action==='post'){
   $title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);
-  $post=['id'=>bin2hex(random_bytes(12)),'title'=>$title,'text'=>$text,'author'=>$u['username'],'author_id'=>$u['id'],'created_at'=>gmdate('c')];
+  $communityId=(string)($b['community_id']??'');$valid=$communityId==='';
+  foreach(arbnt_read('communities') as $community)if($community['id']===$communityId)$valid=true;
+  if(!$valid)out(422,['error'=>'المجتمع غير موجود']);
+  $image=trim((string)($b['image']??''));if($image!==''){
+   if(strlen($image)>1000||!filter_var($image,FILTER_VALIDATE_URL)||strtolower((string)parse_url($image,PHP_URL_SCHEME))!=='https')out(422,['error'=>'رابط الصورة يجب أن يكون HTTPS']);
+  }
+  $post=['id'=>bin2hex(random_bytes(12)),'title'=>$title,'text'=>$text,'image'=>$image,'community_id'=>$communityId,'author'=>$u['username'],'author_id'=>$u['id'],'created_at'=>gmdate('c')];
   arbnt_write('posts',function($a)use($post){$a[]=$post;return $a;});
   out(201,['item'=>$post]);
  }
