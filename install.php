@@ -27,7 +27,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
  if(!$errors){
   if(!is_file(__DIR__.'/app/core.php'))$errors[]='ملفات المحرك غير موجودة';
   if(is_link($appOutside)||(!is_dir($appOutside)&&!@mkdir($appOutside,0700,true)))$errors[]='لا يمكن إنشاء مجلد المحرك خارج الموقع';
-  if(!$errors&&(is_file($appOutside.'/core.php')||is_file($appPointer)))$errors[]='يوجد محرك سابق، يلزم مراجعة التثبيت';
+  if(!$errors&&is_file($appPointer))$errors[]='يوجد ربط محرك سابق في هذا المجلد؛ لا يمكن التثبيت فوقه';
  }
  if(!$errors){
   if(is_dir($private)||@mkdir($private,0700,true)){$mode='outside';}
@@ -62,7 +62,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
  if(!$errors){
   try{
    if(is_file($private.'/users.json'))throw new RuntimeException('Already initialized');
-   $config=['site_name'=>$site,'created_at'=>gmdate('c'),'version'=>'0.3.0'];
+   $config=['site_name'=>$site,'site_description'=>'مساحة عربية للمنشورات والأفكار والنقاشات.','created_at'=>gmdate('c'),'version'=>'0.5.0'];
    foreach(['config'=>$config,'users'=>[['id'=>bin2hex(random_bytes(12)),'username'=>$user,'password_hash'=>password_hash($pass,PASSWORD_DEFAULT),'role'=>'admin','created_at'=>gmdate('c')]],'posts'=>[],'communities'=>[],'comments'=>[]] as $key=>$data){
     $file=$private.'/'.$key.'.json';
     $fp=@fopen($file,'x');if(!$fp)throw new RuntimeException('Cannot create '.$key);
@@ -70,6 +70,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
     chmod($file,0600);
    }
    $sourceCore=__DIR__.'/app/core.php';$targetCore=$appOutside.'/core.php';
+   if(is_file($targetCore)){$oldBackup=$appOutside.'/core-previous-'.gmdate('YmdHis').'-'.bin2hex(random_bytes(4)).'.bak';if(!@copy($targetCore,$oldBackup))throw new RuntimeException('Cannot back up existing app engine');@chmod($oldBackup,0600);}
    if(!@copy($sourceCore,$targetCore)||hash_file('sha256',$sourceCore)!==hash_file('sha256',$targetCore))throw new RuntimeException('App core verification failed');
    @chmod($targetCore,0600);
    $appValue='<?php return '.var_export($appOutside,true).';';
