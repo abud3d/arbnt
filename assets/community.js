@@ -31,7 +31,8 @@ async function loadAdmin(){
   $('storageStatus').textContent='موقع التخزين: '+storage.path_label+' — '+(storage.mode==='outside'?'حماية أعلى':'حماية قياسية');
   $('storageMigrationForm').classList.toggle('hidden',!storage.can_migrate);
   $('securityEvents').replaceChildren(...logs.items.filter(Boolean).slice(0,20).map(v=>element('div',v.at+' · '+v.event+' · '+(v.subject||''))));
-  $('stats').textContent='الأعضاء: '+s.users+' | المواضيع: '+s.posts+' | الردود: '+s.comments;
+  $('stats').textContent='الأعضاء: '+s.users+' | المواضيع: '+s.posts+' | الردود: '+s.comments+' | المجتمعات: '+s.communities;
+  for(const [id,value] of Object.entries({metricUsers:s.users,metricPosts:s.posts,metricComments:s.comments,metricCommunities:s.communities}))$(id).textContent=Number(value||0).toLocaleString('ar-SA');
   const area=$('members');area.replaceChildren();
   for(const member of u.items){
    const line=element('div',undefined,'row');
