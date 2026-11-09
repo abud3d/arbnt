@@ -15,6 +15,24 @@ function renderUser(){
  $('loginPanel').classList.toggle('hidden',!!account);
  $('editor').classList.toggle('hidden',!account);
  if(account)$('welcome').textContent='مرحباً '+account.username;
+ $('adminPanel').classList.toggle('hidden',account?.role!=='admin');
+ if(account?.role==='admin')loadAdmin();
+}
+async function loadAdmin(){
+ try{
+  const [s,u]=await Promise.all([api('admin-stats'),api('admin-users')]);
+  $('stats').textContent='الأعضاء: '+s.users+' | المواضيع: '+s.posts+' | الردود: '+s.comments;
+  const area=$('members');area.replaceChildren();
+  for(const member of u.items){
+   const line=element('div',undefined,'row');
+   line.append(element('span',member.username+' — '+member.role+(member.banned?' (محظور)':'')));
+   if(member.role!=='admin'){
+    const b=element('button',member.banned?'رفع الحظر':'حظر');
+    b.onclick=async()=>{if(!confirm('تأكيد تغيير حالة العضو؟'))return;try{await api('admin-ban',{id:member.id,banned:!member.banned});await loadAdmin()}catch(e){message(e.message)}};
+    line.append(b);
+   }area.append(line);
+  }
+ }catch(e){message(e.message)}
 }
 async function session(){try{const s=await api('session');csrf=s.csrf;account=s.user;renderUser()}catch(e){message(e.message)}}
 async function load(){
@@ -32,7 +50,7 @@ async function load(){
     replies.replaceChildren(element('p','جارٍ التحميل…'));
     try{
      const data=await api('comments&post='+encodeURIComponent(p.id));replies.replaceChildren();
-     for(const c of data.items){const div=element('div',undefined,'comment');div.append(element('strong',c.author),element('p',c.text));replies.append(div)}
+     for(const c of data.items){const div=element('div',undefined,'comment');div.append(element('strong',c.author),element('p',c.text));if(account?.role==='admin'){const del=element('button','حذف الرد');del.onclick=async()=>{if(!confirm('حذف الرد؟'))return;try{await api('admin-delete',{kind:'comments',id:c.id});toggle.click();toggle.click();await loadAdmin()}catch(e){message(e.message)}};div.append(del)}replies.append(div)}
      if(!data.items.length)replies.append(element('p','لا توجد ردود.'));
      if(account){
       const form=element('form');const input=element('textarea');input.required=true;input.maxLength=3000;input.placeholder='اكتب ردك';
@@ -42,12 +60,18 @@ async function load(){
      }
     }catch(e){replies.replaceChildren(element('p',e.message))}
    };
-   a.append(toggle,replies);feed.append(a);
+   a.append(toggle,replies);
+   if(account?.role==='admin'){
+    const del=element('button','حذف الموضوع');
+    del.onclick=async()=>{if(!confirm('حذف الموضوع وردوده نهائياً؟'))return;try{await api('admin-delete',{kind:'posts',id:p.id});await load();await loadAdmin()}catch(e){message(e.message)}};
+    a.append(del);
+   }feed.append(a);
   }
   $('pages').textContent=page+' / '+Math.max(1,Math.ceil(total/20));
   $('previous').disabled=page===1;$('next').disabled=page*20>=total;
  }catch(e){feed.replaceChildren(element('p',e.message))}
 }
+$('registerForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('register',{username:b.get('username'),password:b.get('password')});e.currentTarget.reset();message('تم إنشاء العضوية. يمكنك تسجيل الدخول الآن.')}catch(err){message(err.message)}};
 $('loginForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{const v=await api('login',{username:b.get('username'),password:b.get('password')});account=v.user;csrf=v.csrf;renderUser();e.currentTarget.reset();message('تم تسجيل الدخول');await load()}catch(err){message(err.message)}};
 $('logout').onclick=async()=>{try{await api('logout',{});account=null;await session();message('تم تسجيل الخروج');await load()}catch(e){message(e.message)}};
 $('postForm').onsubmit=async e=>{e.preventDefault();const b=new FormData(e.currentTarget);try{await api('post',{title:b.get('title'),text:b.get('text')});e.currentTarget.reset();page=1;message('تم نشر الموضوع');await load()}catch(err){message(err.message)}};
