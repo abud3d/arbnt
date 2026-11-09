@@ -19,3 +19,8 @@
 
 ## Trial installation
 Use a dedicated HTTPS domain DocumentRoot, PHP 8.3+, and writable parent outside **all** publicly reachable directories. Upload project files there; open `install.php`; create the administrator; remove `install.php` immediately; open `community.html`. JSON private storage is created at `../arbnt-private` relative to the DocumentRoot. Ensure the directory is not reachable through any Apache alias, other domain or symlink. Back up private data before upgrades.
+
+## نقل التخزين من لوحة الإدارة
+بعد التثبيت افتح `community.html` وسجل دخول المدير، ثم قسم «الأمان ومكان التخزين». إذا كان التخزين داخل `storage/` يظهر زر النقل إلى المجلد الخاص `../arbnt-private`. يتطلب تأكيد كلمة مرور المدير. يقوم النظام بنسخ ملفات JSON وسجلاتها والتحقق من SHA-256 قبل تغيير مسار التخزين. يظل المصدر القديم محفوظاً؛ لا تحذفه حتى تتأكد من عمل الموقع وتوفر نسخة احتياطية. إذا كانت الاستضافة تمنع إنشاء مجلد خارج الموقع، يظهر خطأ ولا يتغير المسار.
+
+**ملاحظة:** لا يزال يلزم اختبار تكاملي على الاستضافة قبل استخدام الميزة على بيانات مهمة. يفضل إيقاف الكتابة أثناء نقل البيانات الحساسة أو أخذ نسخة احتياطية أولاً.
