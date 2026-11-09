@@ -3,7 +3,14 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
-require dirname(__DIR__).'/app/core.php';
+$publicRoot=dirname(__DIR__);
+$appPointer=$publicRoot.'/.arbnt-app.php';
+if(is_file($appPointer)){
+ $appPath=require $appPointer;
+ if(!is_string($appPath)||!is_file($appPath.'/core.php')||is_link($appPath)){http_response_code(503);exit;}
+ define('ARBNT_PUBLIC_ROOT',$publicRoot);
+ require $appPath.'/core.php';
+}else{require $publicRoot.'/app/core.php';}
 ini_set('display_errors','0');
 if(empty($_SERVER['HTTPS'])||$_SERVER['HTTPS']==='off')arbnt_json(403,['error'=>'HTTPS required']);
 header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
