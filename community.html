@@ -2,40 +2,67 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#ffffff"><title>مجتمع ARBNT | شبكة العرب</title>
-<meta name="description" content="مساحة عربية هادئة للمنشورات والنقاشات والمجتمعات.">
-<link rel="stylesheet" href="assets/shell.css?v=0.5.0"><link rel="stylesheet" href="assets/community.css?v=0.5.0">
-<script src="assets/shell.js?v=0.5.0" defer></script><script src="assets/community.js?v=0.5.0" defer></script>
+<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff">
+<title>المنشورات والنقاشات | ARBNT | شبكة العرب</title>
+<link rel="stylesheet" href="assets/community.css?v=0.5.1">
+<script src="assets/community.js?v=0.5.1" defer></script>
 </head>
-<body><header></header>
-<main class="wrap">
-<section class="hero"><div><span class="eyebrow">ARBNT · شبكة العرب</span><h1 id="siteTitle">المجتمع</h1><p id="siteDescription">مساحة للمنشورات والأفكار والنقاشات، ببساطة.</p></div><button type="button" class="primary" data-view="publish">＋ منشور جديد</button></section>
-<p id="notice" role="status" aria-live="polite"></p>
+<body>
+<header class="top">
+<button id="menu" aria-label="إظهار أو إخفاء القائمة" aria-expanded="true">☰</button>
+<a class="logo" href="index.html">عرب نت <small>ARBNT</small></a>
+<nav class="topnav"><a href="index.html">الرئيسية</a><a href="#feedWrap">المنشورات</a><a href="#feedWrap">النقاشات</a></nav>
+<div class="search"><input id="query" type="search" aria-label="بحث" placeholder="ابحث في المنشورات"></div>
+<div class="actions"><button id="lang" aria-label="تغيير اللغة">EN</button><button id="theme" aria-label="الوضع الليلي">☾</button></div>
+</header>
 <div class="layout">
-<nav class="sidebar" aria-label="قائمة المجتمع">
-<div class="side-caption">المجتمع</div>
-<button type="button" data-view="all" class="active">⌂ &nbsp; أحدث المنشورات</button>
-<button type="button" data-view="favorites">♡ &nbsp; المفضلة</button>
-<button type="button" data-view="communities">▦ &nbsp; المجتمعات</button>
-<button type="button" data-view="profile">◉ &nbsp; الملف الشخصي</button>
-<button type="button" data-view="publish">＋ &nbsp; كتابة منشور</button>
-<button type="button" data-view="auth" id="authNav">↪ &nbsp; الدخول والتسجيل</button>
-<a href="admin.html" class="side-link hidden" id="adminLink">⚙ &nbsp; مركز الإدارة</a>
-<p class="side-note">مجتمع عربي مفتوح للقراءة، والمشاركة متاحة للأعضاء.</p>
-</nav>
-<div class="content">
+<aside id="sidebar">
+<strong>استكشف عرب نت</strong>
+<button class="active" type="button" data-view="all">كل المنشورات</button>
+<button type="button" data-view="favorites">المفضلة</button>
+<button type="button" data-view="communities">المجتمعات</button>
+<button type="button" data-view="profile">الملف الشخصي</button>
+<button type="button" data-view="publish">منشور جديد</button>
+<button type="button" data-view="auth" id="authNav">الدخول والتسجيل</button>
+<a href="admin.html" class="hidden" id="adminLink">مركز الإدارة</a>
+<strong>المجالات</strong>
+<a href="#feedWrap">الذكاء والوكلاء</a>
+<a href="#feedWrap">التطوير الحديث</a>
+<a href="#feedWrap">مفتوحة المصدر</a>
+<a href="#feedWrap">التواصل والتسويق</a>
+<a href="#feedWrap">التقنيات الناشئة</a>
+</aside>
+<main class="main">
+<div class="crumb">عرب نت / شبكة العرب / المنشورات</div>
+<div class="heading">
+<div><h1 id="siteTitle">المنشورات والنقاشات</h1><p class="desc" id="siteDescription">مساحة للأسئلة والأفكار والتجارب والمشاركة.</p></div>
+<button type="button" id="newPost" data-view="publish">+ منشور جديد</button>
+</div>
+<p id="notice" role="status" aria-live="polite"></p>
+
 <section id="loginPanel" class="panel hidden">
-<div class="panel-head"><h2>الدخول إلى شبكة العرب</h2><p>أنشئ حساباً للمشاركة وحفظ المواضيع.</p></div>
+<div class="panel-title"><h2>الدخول إلى شبكة العرب</h2><p>سجّل الدخول أو أنشئ عضوية جديدة.</p></div>
 <div class="auth-grid">
-<div><h3>تسجيل الدخول</h3><form id="loginForm" class="stack"><label>اسم المستخدم<input name="username" required autocomplete="username"></label><label>كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label><button type="submit" class="primary">دخول</button></form></div>
-<div><h3>عضوية جديدة</h3><form id="registerForm" class="stack"><label>اسم المستخدم (إنجليزي)<input name="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_]+"></label><label>البريد الإلكتروني<input name="email" type="email" required maxlength="254" autocomplete="email"></label><label>كلمة المرور (12 حرفاً على الأقل)<input name="password" type="password" required minlength="12" autocomplete="new-password"></label><button type="submit" class="primary">تسجيل عضو</button></form></div>
-</div><details class="recovery"><summary>نسيت كلمة المرور؟</summary><form id="forgotForm" class="stack"><label>البريد المسجل<input name="email" type="email" required></label><button type="submit">إرسال رابط الاستعادة</button></form></details>
+<div><h3>تسجيل الدخول</h3><form id="loginForm" class="stack"><label>اسم المستخدم<input name="username" required autocomplete="username"></label><label>كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label><button type="submit">دخول</button></form></div>
+<div><h3>عضوية جديدة</h3><form id="registerForm" class="stack"><label>اسم المستخدم (إنجليزي)<input name="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_]+"></label><label>البريد الإلكتروني<input name="email" type="email" required maxlength="254" autocomplete="email"></label><label>كلمة المرور (12 حرفاً على الأقل)<input name="password" type="password" required minlength="12" autocomplete="new-password"></label><button type="submit">تسجيل عضو</button></form></div>
+</div>
+<details class="recovery"><summary>نسيت كلمة المرور؟</summary><form id="forgotForm" class="stack"><label>البريد المسجل<input name="email" type="email" required></label><button type="submit">إرسال رابط الاستعادة</button></form></details>
 <form id="resetForm" class="stack hidden"><h3>تعيين كلمة مرور جديدة</h3><input type="hidden" name="token"><label>كلمة المرور الجديدة<input name="password" type="password" required minlength="12"></label><button type="submit">تحديث كلمة المرور</button></form>
 </section>
-<section id="profilePanel" class="panel hidden"><div class="panel-head"><h2>الملف الشخصي</h2><p>نبذة العضو ومنشوراته.</p></div><div id="profileSummary"></div><form id="profileForm" class="stack hidden"><label>نبذتي<textarea name="bio" maxlength="500"></textarea></label><button type="submit" class="primary">حفظ الملف</button></form><div id="profilePosts"></div></section>
-<section id="communitiesPanel" class="panel hidden"><div class="panel-head"><h2>المجتمعات</h2><p>تصفح مجتمعات شبكة العرب.</p></div><div id="communitiesList" class="communities-list"></div><form id="communityForm" class="stack hidden"><h3>إنشاء مجتمع جديد</h3><label>اسم المجتمع<input name="name" required maxlength="80"></label><label>المعرف الإنجليزي<input name="slug" required pattern="[a-z0-9-]{3,40}" maxlength="40"></label><label>وصف المجتمع<textarea name="description" maxlength="500"></textarea></label><button type="submit" class="primary">إنشاء مجتمع</button></form></section>
-<section id="editor" class="panel hidden"><div class="user-line"><strong id="welcome"></strong><button id="logout" type="button">تسجيل الخروج</button></div><div class="panel-head"><h2>منشور جديد</h2><p>شارك فكرة أو سؤالاً مع المجتمع.</p></div><form id="postForm" class="stack"><label>العنوان<input name="title" required maxlength="180"></label><label>المجتمع<select id="postCommunity" name="community_id"><option value="">عام</option></select></label><label>المحتوى<textarea name="text" required maxlength="8000"></textarea></label><label>رابط صورة مصغرة HTTPS (اختياري)<input type="url" name="image" placeholder="https://..."></label><button type="submit" class="primary">نشر الموضوع</button></form></section>
-<div id="feedWrap"><div class="feed-header"><h2 id="feedTitle">أحدث المنشورات</h2><span>المشاركات والنقاشات</span></div><div id="feed">جارٍ التحميل…</div><div class="pagination"><button id="previous" type="button">السابق</button><span id="pages">1</span><button id="next" type="button">التالي</button></div></div>
-</div></div>
-</main><footer></footer>
+
+<section id="profilePanel" class="panel hidden"><div class="panel-title"><h2>الملف الشخصي</h2><p>نبذة العضو ومنشوراته.</p></div><div id="profileSummary"></div><form id="profileForm" class="stack hidden"><label>نبذتي<textarea name="bio" maxlength="500"></textarea></label><button type="submit">حفظ الملف</button></form><div id="profilePosts"></div></section>
+
+<section id="communitiesPanel" class="panel hidden"><div class="panel-title"><h2>المجتمعات</h2><p>تصفح مجتمعات شبكة العرب.</p></div><div id="communitiesList"></div><form id="communityForm" class="stack hidden"><h3>إنشاء مجتمع جديد</h3><label>اسم المجتمع<input name="name" required maxlength="80"></label><label>المعرف الإنجليزي<input name="slug" required pattern="[a-z0-9-]{3,40}" maxlength="40"></label><label>وصف المجتمع<textarea name="description" maxlength="500"></textarea></label><button type="submit">إنشاء مجتمع</button></form></section>
+
+<section id="editor" class="panel hidden"><div class="user-line"><strong id="welcome"></strong><button id="logout" type="button">تسجيل الخروج</button></div><div class="panel-title"><h2>منشور جديد</h2><p>شارك فكرة أو سؤالاً مع المجتمع.</p></div><form id="postForm" class="stack"><label>العنوان<input name="title" required maxlength="180"></label><label>المجتمع<select id="postCommunity" name="community_id"><option value="">عام</option></select></label><label>المحتوى<textarea name="text" required maxlength="8000"></textarea></label><label>رابط صورة مصغرة HTTPS (اختياري)<input type="url" name="image" placeholder="https://..."></label><button type="submit">نشر الموضوع</button></form></section>
+
+<section id="feedWrap">
+<div class="tabs"><button class="active" type="button" data-view="all">الكل</button><button type="button" data-view="communities">المجتمعات</button><button type="button" data-view="favorites">المفضلة</button></div>
+<div class="sort"><span>ترتيب:</span><button class="active" type="button" id="sortNewest">الأحدث</button><span id="feedTitle">أحدث المنشورات</span></div>
+<div id="feed">جارٍ التحميل…</div>
+<div class="pagination"><button id="previous" type="button">السابق</button><span id="pages">1</span><button id="next" type="button">التالي</button></div>
+</section>
+</main>
+</div>
+<footer><div class="footer-inner"><span>عرب نت · شبكة العرب</span><span>ARBNT v0.5.1</span></div></footer>
 </body></html>
