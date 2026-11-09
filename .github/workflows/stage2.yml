@@ -1,0 +1,55 @@
+name: ARBNT Stage 2 static checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate HTML structure, scripts and internal paths
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          pages=[Path('index.html'),*Path('starter').glob('*.html')]
+          assert len(pages)>=5, f'Expected 5 pages, got {len(pages)}'
+          class Check(HTMLParser):
+              def __init__(self):
+                  super().__init__();self.refs=[];self.ids=set();self.duplicate=[]
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if 'id' in a:
+                      if a['id'] in self.ids:self.duplicate.append(a['id'])
+                      self.ids.add(a['id'])
+                  if tag in ('a','link','script') and (a.get('href') or a.get('src')):
+                      self.refs.append(a.get('href') or a.get('src'))
+          for p in pages:
+              s=p.read_text(encoding='utf-8');parser=Check();parser.feed(s)
+              assert '<html' in s and '</html>' in s,p
+              assert not parser.duplicate,(p,parser.duplicate)
+              assert 'assets/shell.js' in s and 'assets/shell.css' in s,p
+              for ref in parser.refs:
+                  if ref.startswith(('https://','http://','#','mailto:','tel:','data:','javascript:','/')):continue
+                  target=(p.parent/ref.split('#')[0].split('?')[0]).resolve()
+                  assert target.is_file(),f'{p}: missing {ref}'
+              print(f'PASS {p}: {len(parser.refs)} references')
+          for f in Path('assets').glob('*.js'):
+              assert f.stat().st_size>0,f
+          PY
+      - name: Validate JavaScript syntax
+        run: |
+          for file in assets/*.js; do node --check "$file"; done
+      - name: Validate brand and shared layout
+        run: |
+          grep -q 'ARBNT' assets/shell.js
+          grep -q 'شبكة العرب' assets/shell.js
+          grep -q 'arb-brand-copy' assets/shell.css
+          grep -q 'arb-page' assets/layout.css
+          grep -q 'arb-grid' assets/layout.css
+          echo 'ARBNT stage 2 static checks passed'
