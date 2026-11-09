@@ -1,0 +1,27 @@
+name: ARBNT community syntax checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: JavaScript syntax
+        run: |
+          for file in assets/*.js; do node --check "$file"; done
+      - name: Confirm community assets
+        run: |
+          test -f community.html
+          test -f api/community.php
+          test -f assets/community.js
+          test -f app/core.php
+          test ! -e composer.json
+          test ! -e package.json
