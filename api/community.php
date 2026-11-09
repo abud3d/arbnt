@@ -71,7 +71,6 @@ try{
   if($action==='admin-stats'){admin();out(200,['users'=>count(arbnt_read('users')),'posts'=>count(arbnt_read('posts')),'comments'=>count(arbnt_read('comments'))]);}
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
   if($action==='posts'){
-   throttle('read:'.($_SERVER['REMOTE_ADDR']??'unknown'),1);
    $posts=arbnt_read('posts');$posts=array_reverse($posts);
    $page=max(1,min(100000,(int)($_GET['page']??1)));
    out(200,['items'=>array_slice($posts,($page-1)*20,20),'total'=>count($posts),'page'=>$page]);
