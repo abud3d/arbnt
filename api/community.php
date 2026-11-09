@@ -67,6 +67,7 @@ try{
  $method=$_SERVER['REQUEST_METHOD']??'GET';
  if($method==='GET'){
   if($action==='session')out(200,['user'=>user(),'csrf'=>$_SESSION['arbnt_csrf']]);
+  if($action==='admin-storage'){admin();out(200,arbnt_storage_status());}
   if($action==='admin-security'){admin();$file=arbnt_data_dir().'/security.log';$lines=is_file($file)?array_slice(file($file,FILE_IGNORE_NEW_LINES)?:[],-50):[];out(200,['items'=>array_map(fn($v)=>json_decode($v,true),array_reverse($lines))]);}
   if($action==='admin-stats'){admin();out(200,['users'=>count(arbnt_read('users')),'posts'=>count(arbnt_read('posts')),'comments'=>count(arbnt_read('comments'))]);}
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
@@ -136,6 +137,12 @@ try{
  if($action==='logout'){audit('logout');$_SESSION=[];session_regenerate_id(true);out(200,['ok'=>true]);}
  $u=requireUser();
  throttle('write:'.$u['id'],2);
+ if($action==='admin-storage-migrate'){
+  admin();$password=(string)($b['password']??'');$valid=false;
+  foreach(arbnt_read('users') as $member){if(($member['id']??'')===$u['id']&&password_verify($password,(string)($member['password_hash']??'')))$valid=true;}
+  if(!$valid)out(403,['error'=>'كلمة مرور المدير غير صحيحة']);
+  $result=arbnt_storage_migrate();audit('storage_migrated',$u['id']);out(200,['ok'=>true,'storage'=>$result,'notice'=>'تم النقل. احتفظ بالمجلد القديم محمياً حتى تتحقق من عمل الموقع؛ لا تحذفه من لوحة الملفات الآن.']);
+ }
  if($action==='admin-ban'){
   admin();$id=clean($b['id']??'',64);$ban=($b['banned']??null)===true;
   if($id===$u['id'])out(422,['error'=>'لا يمكن حظر نفسك']);
