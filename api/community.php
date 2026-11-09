@@ -92,7 +92,7 @@ try{
    if($recentFailures>=5)$warnings[]=['level'=>'warning','title'=>'محاولات أمنية تستحق المراجعة','detail'=>$recentFailures.' حدثاً في آخر 100 سجل'];
    $storage=arbnt_storage_status();if($storage['mode']!=='outside')$warnings[]=['level'=>'warning','title'=>'موقع التخزين','detail'=>'البيانات داخل مجلد الموقع؛ راجع الحماية'];
    if(!$warnings)$warnings[]=['level'=>'ok','title'=>'لا توجد تنبيهات حالية','detail'=>'لم ترصد مؤشرات التحذير المحددة في لوحة الإدارة'];
-   $top=[];foreach($communities as $cm){$id=(string)($cm['id']??'');$count=0;foreach($posts as $post)if((string)($post['community_id']??'')===$id)$count++;$top[]=['name'=>(string)($cm['name']??'مجتمع'),'count'=>$count];}usort($top,static fn($a,$b)=>$b['count']<=>$a['count']);
+   $counts=[];foreach($posts as $post){$id=(string)($post['community_id']??'');$counts[$id]=($counts[$id]??0)+1;}$top=[];foreach($communities as $cm){$id=(string)($cm['id']??'');$top[]=['name'=>(string)($cm['name']??'مجتمع'),'count'=>$counts[$id]??0];}usort($top,static fn($a,$b)=>$b['count']<=>$a['count']);
    out(200,['stats'=>['members'=>count($users),'posts'=>count($posts),'comments'=>count($comments),'communities'=>count($communities),'banned'=>$banned,'unverified'=>$unverified],'trend'=>array_values($days),'warnings'=>$warnings,'top_communities'=>array_slice($top,0,6),'storage'=>$storage]);
   }
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'verified'=>!isset($u['verified'])||$u['verified']===true,'email'=>(string)($u['email']??''),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
