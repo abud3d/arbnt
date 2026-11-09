@@ -7,7 +7,7 @@ function message(t){$('notice').textContent=t}
 async function api(action,body){
  const options={credentials:'same-origin'};
  if(body!==undefined){options.method='POST';options.headers={'Content-Type':'application/json','X-CSRF-Token':csrf};options.body=JSON.stringify(body)}
- const r=await fetch(endpoint+encodeURIComponent(action),options);
+ const r=await fetch(endpoint+action,options);
  const v=await r.json();if(!r.ok)throw Error(v.error||'خطأ في الاتصال');return v;
 }
 function element(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}
