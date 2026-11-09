@@ -24,6 +24,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
  if(strlen($site)<2||strlen($site)>100)$errors[]='Site name must be 2-100 bytes';
  if(!preg_match('/^[a-zA-Z0-9_]{3,32}$/',$user))$errors[]='Username must be 3-32 letters, digits or underscores';
  if(strlen($pass)<12||strlen($pass)>256)$errors[]='Password must be 12-256 characters';
+ if(!$errors&&is_dir($private)){ $existing=array_diff(scandir($private)?:[],['.','..']);if($existing)$errors[]='يوجد محتوى قديم في مجلد البيانات الخارجي. لن يتم استبداله. تحقق من النسخة السابقة أو خذ نسخة احتياطية أولاً.'; }
  if(!$errors){
   if(!is_file(__DIR__.'/app/core.php'))$errors[]='ملفات المحرك غير موجودة';
   if(is_link($appOutside)||(!is_dir($appOutside)&&!@mkdir($appOutside,0700,true)))$errors[]='لا يمكن إنشاء مجلد المحرك خارج الموقع';
