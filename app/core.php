@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
 function arbnt_data_dir(): string {
- $root=dirname(__DIR__);
+ $root=defined('ARBNT_PUBLIC_ROOT')?ARBNT_PUBLIC_ROOT:dirname(__DIR__);
  $pointer=$root.'/.arbnt-storage.php';
- $path=dirname($root).'/arbnt-private';
+ $webroot=realpath((string)($_SERVER['DOCUMENT_ROOT']??''));
+ $base=$webroot&&($root===$webroot||str_starts_with($root,$webroot.'/'))?$webroot:$root;
+ $path=dirname($base).'/arbnt-private';
  if(is_file($pointer)){
   $chosen=require $pointer;
   if(!is_string($chosen)||!in_array($chosen,[$path,$root.'/storage'],true))throw new RuntimeException('Invalid storage pointer');
@@ -13,19 +15,19 @@ function arbnt_data_dir(): string {
  return $path;
 }
 function arbnt_storage_guard(int $mode=LOCK_SH){
- $f=dirname(__DIR__).'/.arbnt-migration.lock';
+ $f=(defined('ARBNT_PUBLIC_ROOT')?ARBNT_PUBLIC_ROOT:dirname(__DIR__)).'/.arbnt-migration.lock';
  $h=@fopen($f,'c');if(!$h||!flock($h,$mode))throw new RuntimeException('Storage migration lock unavailable');
  return $h;
 }
 function arbnt_storage_release($h):void{flock($h,LOCK_UN);fclose($h);}
 function arbnt_storage_status():array{
- $root=dirname(__DIR__);$current=arbnt_data_dir();$outside=dirname($root).'/arbnt-private';
+ $root=defined('ARBNT_PUBLIC_ROOT')?ARBNT_PUBLIC_ROOT:dirname(__DIR__);$current=arbnt_data_dir();$webroot=realpath((string)($_SERVER['DOCUMENT_ROOT']??''));$base=$webroot&&($root===$webroot||str_starts_with($root,$webroot.'/'))?$webroot:$root;$outside=dirname($base).'/arbnt-private';
  return ['mode'=>$current===$outside?'outside':'inside','can_migrate'=>$current!==$outside,'path_label'=>$current===$outside?'خارج مجلد الموقع':'storage داخل الموقع'];
 }
 function arbnt_storage_migrate():array{
  $guard=arbnt_storage_guard(LOCK_EX);
  try{
-  $root=dirname(__DIR__);$source=arbnt_data_dir();$target=dirname($root).'/arbnt-private';
+  $root=defined('ARBNT_PUBLIC_ROOT')?ARBNT_PUBLIC_ROOT:dirname(__DIR__);$source=arbnt_data_dir();$webroot=realpath((string)($_SERVER['DOCUMENT_ROOT']??''));$base=$webroot&&($root===$webroot||str_starts_with($root,$webroot.'/'))?$webroot:$root;$target=dirname($base).'/arbnt-private';
   if($source===$target)return arbnt_storage_status();
   if($source!==$root.'/storage')throw new RuntimeException('Unsupported storage source');
   if(is_link($target)||is_link($source))throw new RuntimeException('Symlinks not permitted');
