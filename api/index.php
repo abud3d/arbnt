@@ -2,7 +2,7 @@
 declare(strict_types=1);
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
-require dirname(__DIR__).'/app/bootstrap.php';
+require dirname(__DIR__).'/app/core.php';
 try {
  $config=arbnt_config();
  $resource=(string)($_GET['resource']??'');
