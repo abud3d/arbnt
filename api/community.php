@@ -221,7 +221,7 @@ try{
  }
  if($action==='admin-settings-update'){
   admin();$name=clean($b['site_name']??'',100);$description=trim((string)($b['site_description']??''));
-  if(strlen($description)>320||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$description))out(422,['error'=>'الوصف غير صالح']);
+  if(strlen($description)>320||preg_match('/[[:cntrl:]]/u',$description))out(422,['error'=>'الوصف غير صالح']);
   arbnt_write('config',static function($cfg)use($name,$description){$cfg['site_name']=$name;$cfg['site_description']=$description;$cfg['updated_at']=gmdate('c');return $cfg;});
   audit('admin_settings_update',$u['id']);out(200,['ok'=>true]);
  }
@@ -236,7 +236,7 @@ try{
  }
  if($action==='admin-community-update'){
   admin();$id=clean($b['id']??'',64);$name=clean($b['name']??'',80);$description=trim((string)($b['description']??''));
-  if(strlen($description)>500||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$description))out(422,['error'=>'الوصف غير صالح']);
+  if(strlen($description)>500||preg_match('/[[:cntrl:]]/u',$description))out(422,['error'=>'الوصف غير صالح']);
   $found=false;arbnt_write('communities',static function($rows)use($id,$name,$description,&$found){foreach($rows as &$row)if(($row['id']??'')===$id){$row['name']=$name;$row['description']=$description;$found=true;break;}unset($row);return $rows;});
   if(!$found)out(404,['error'=>'المجتمع غير موجود']);audit('admin_community_update',$id);out(200,['ok'=>true]);
  }
