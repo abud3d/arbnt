@@ -213,6 +213,34 @@ try{
   out(200,['ok'=>true]);
  }
 
+
+ if($action==='admin-settings-update'){
+  admin();$name=clean($b['site_name']??'',100);$description=trim((string)($b['site_description']??''));
+  if(strlen($description)>320||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$description))out(422,['error'=>'الوصف غير صالح']);
+  arbnt_write('config',static function($cfg)use($name,$description){$cfg['site_name']=$name;$cfg['site_description']=$description;$cfg['updated_at']=gmdate('c');return $cfg;});
+  audit('admin_settings_update',$u['id']);out(200,['ok'=>true]);
+ }
+ if($action==='admin-post-update'){
+  admin();$id=clean($b['id']??'',64);$title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);
+  $community=(string)($b['community_id']??'');$valid=$community==='';foreach(arbnt_read('communities') as $cm)if(($cm['id']??'')===$community)$valid=true;
+  if(!$valid)out(422,['error'=>'المجتمع غير موجود']);
+  $image=trim((string)($b['image']??''));
+  if($image!==''&&(strlen($image)>1000||!filter_var($image,FILTER_VALIDATE_URL)||strtolower((string)parse_url($image,PHP_URL_SCHEME))!=='https'))out(422,['error'=>'رابط الصورة يجب أن يكون HTTPS']);
+  $found=false;arbnt_write('posts',static function($rows)use($id,$title,$text,$community,$image,&$found){foreach($rows as &$row)if(($row['id']??'')===$id){$row['title']=$title;$row['text']=$text;$row['community_id']=$community;$row['image']=$image;$row['updated_at']=gmdate('c');$found=true;break;}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'المنشور غير موجود']);audit('admin_post_update',$id);out(200,['ok'=>true]);
+ }
+ if($action==='admin-community-update'){
+  admin();$id=clean($b['id']??'',64);$name=clean($b['name']??'',80);$description=trim((string)($b['description']??''));
+  if(strlen($description)>500||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$description))out(422,['error'=>'الوصف غير صالح']);
+  $found=false;arbnt_write('communities',static function($rows)use($id,$name,$description,&$found){foreach($rows as &$row)if(($row['id']??'')===$id){$row['name']=$name;$row['description']=$description;$found=true;break;}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'المجتمع غير موجود']);audit('admin_community_update',$id);out(200,['ok'=>true]);
+ }
+ if($action==='admin-community-delete'){
+  admin();$id=clean($b['id']??'',64);
+  foreach(arbnt_read('posts') as $post)if(($post['community_id']??'')===$id)out(409,['error'=>'المجتمع يحتوي منشورات؛ انقلها إلى عام أولاً']);
+  $found=false;arbnt_write('communities',static function($rows)use($id,&$found){$new=[];foreach($rows as $row){if(($row['id']??'')===$id){$found=true;continue;}$new[]=$row;}return $new;});
+  if(!$found)out(404,['error'=>'المجتمع غير موجود']);audit('admin_community_delete',$id);out(200,['ok'=>true]);
+ }
  if($action==='favorite'){
   $id=clean($b['id']??'',64);$found=false;foreach(arbnt_read('posts') as $p)if(($p['id']??'')===$id)$found=true;
   if(!$found)out(404,['error'=>'المنشور غير موجود']);
