@@ -1,0 +1,24 @@
+name: ARBNT lightweight PHP checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PHP syntax without dependencies
+        run: |
+          php -v
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+      - name: Ensure no heavy dependencies
+        run: |
+          test ! -e composer.json
+          test ! -e package.json
+          test ! -e app/bootstrap.php
+          test -f app/core.php
+          grep -q "app/core.php" api/index.php
