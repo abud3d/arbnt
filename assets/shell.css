@@ -1,0 +1,13 @@
+/* One shared ARBNT identity for all static pages */
+.arb-shell{width:min(1320px,calc(100% - 32px));margin:auto;min-height:62px;display:flex;align-items:center;gap:28px}
+.arb-brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;color:var(--ink)!important;text-decoration:none;white-space:nowrap}
+.arb-mark{width:35px;height:35px;display:grid;place-items:center;background:var(--blue);color:#fff;border-radius:6px;font-size:14px;letter-spacing:-1px}
+.arb-nav{display:flex;align-items:center;gap:20px;flex:1}.arb-nav a{font-size:13px;color:var(--ink);white-space:nowrap}
+.arb-controls{display:flex;align-items:center;gap:7px;margin-inline-start:auto}.arb-controls button{border:1px solid var(--border,var(--line));border-radius:5px;background:var(--tile,var(--bg));color:var(--ink);padding:6px 10px;cursor:pointer}
+.arb-controls .search{width:min(240px,23vw);margin:0}.arb-controls .search input{width:100%;padding:7px 10px;border:1px solid var(--border,var(--line));border-radius:5px;background:var(--tile,var(--bg));color:var(--ink)}
+.arb-footer{width:min(1320px,calc(100% - 32px));margin:auto;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.arb-footer a{color:var(--muted)}
+.arb-grid{display:grid;grid-template-columns:repeat(var(--arb-cols,1),minmax(0,1fr));gap:var(--arb-gap,16px);align-items:start}.arb-grid>*{min-width:0}
+.arb-grid[data-cols="1"]{--arb-cols:1}.arb-grid[data-cols="2"]{--arb-cols:2}.arb-grid[data-cols="3"]{--arb-cols:3}
+.arb-grid-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 0;color:var(--muted);font-size:12px}.arb-grid-tools select{border:1px solid var(--line,var(--border));background:var(--bg);color:var(--ink);padding:5px;border-radius:5px}
+@media(max-width:800px){.arb-shell{gap:10px;flex-wrap:wrap;padding:9px 0}.arb-nav{order:3;flex-basis:100%;overflow-x:auto;gap:14px}.arb-controls .search{width:125px}.arb-grid[data-cols="3"]{--arb-cols:2}}
+@media(max-width:550px){.arb-grid[data-cols="2"],.arb-grid[data-cols="3"]{--arb-cols:1}.arb-controls .search{display:none}.arb-brand{font-size:16px}.arb-nav{gap:12px}}
