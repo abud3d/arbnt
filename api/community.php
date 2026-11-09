@@ -96,6 +96,26 @@ try{
    out(200,['stats'=>['members'=>count($users),'posts'=>count($posts),'comments'=>count($comments),'communities'=>count($communities),'banned'=>$banned,'unverified'=>$unverified],'trend'=>array_values($days),'warnings'=>$warnings,'top_communities'=>array_slice($top,0,6),'storage'=>$storage]);
   }
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
+
+  if($action==='admin-settings'){
+   admin();$cfg=arbnt_config();
+   out(200,['site_name'=>(string)($cfg['site_name']??'شبكة العرب'),'site_description'=>(string)($cfg['site_description']??''),'version'=>trim((string)@file_get_contents($publicRoot.'/VERSION')),'storage'=>arbnt_storage_status()]);
+  }
+  if($action==='site-info'){
+   $cfg=arbnt_config();out(200,['site_name'=>(string)($cfg['site_name']??'شبكة العرب'),'site_description'=>(string)($cfg['site_description']??'')]);
+  }
+  if($action==='admin-content-posts'||$action==='admin-content-comments'){
+   admin();$kind=$action==='admin-content-posts'?'posts':'comments';$rows=array_reverse(arbnt_read($kind));
+   $q=trim((string)($_GET['q']??''));if(strlen($q)>100)out(422,['error'=>'بحث طويل']);
+   if($q!=='')$rows=array_values(array_filter($rows,static fn($r)=>str_contains(strtolower((string)($r['title']??'').' '.(string)($r['text']??'').' '.(string)($r['author']??'')),strtolower($q))));
+   $page=max(1,min(10000,(int)($_GET['page']??1)));$per=15;
+   out(200,['items'=>array_slice($rows,($page-1)*$per,$per),'total'=>count($rows),'page'=>$page,'per_page'=>$per]);
+  }
+  if($action==='admin-communities'){
+   admin();$rows=arbnt_read('communities');$counts=[];foreach(arbnt_read('posts') as $post){$id=(string)($post['community_id']??'');$counts[$id]=($counts[$id]??0)+1;}
+   foreach($rows as &$cm)$cm['post_count']=$counts[(string)($cm['id']??'')]??0;unset($cm);
+   out(200,['items'=>$rows]);
+  }
   if($action==='communities')out(200,['items'=>arbnt_read('communities')]);
   if($action==='profile'){
    $name=(string)($_GET['username']??'');$found=null;
