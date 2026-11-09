@@ -19,3 +19,8 @@
 .arb-brand-copy strong{font-size:21px;font-weight:800;letter-spacing:.5px;line-height:1.1}
 .arb-brand-copy small{font-size:12px;font-weight:500;color:var(--muted);line-height:1.2;letter-spacing:0}
 @media(max-width:550px){.arb-mark{width:43px;height:43px;min-width:43px;font-size:18px}.arb-brand-copy strong{font-size:17px}.arb-brand-copy small{font-size:11px}}
+
+/* Brand lockup: equal typography for ARBNT and شبكة العرب */
+.arb-brand-copy{gap:3px}
+.arb-brand-copy strong,.arb-brand-copy small{font-size:19px;font-weight:700;line-height:1.15;letter-spacing:0}
+@media(max-width:550px){.arb-brand-copy strong,.arb-brand-copy small{font-size:15px}}
