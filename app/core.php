@@ -1,7 +1,14 @@
 <?php
 declare(strict_types=1);
 function arbnt_data_dir(): string {
- $path=dirname(__DIR__).'/../arbnt-private';
+ $root=dirname(__DIR__);
+ $pointer=$root.'/.arbnt-storage.php';
+ $path=dirname($root).'/arbnt-private';
+ if(is_file($pointer)){
+  $chosen=require $pointer;
+  if(!is_string($chosen)||!in_array($chosen,[$path,$root.'/storage'],true))throw new RuntimeException('Invalid storage pointer');
+  $path=$chosen;
+ }
  if (!is_dir($path)) throw new RuntimeException('Storage is not initialized');
  return $path;
 }
