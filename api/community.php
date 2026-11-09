@@ -95,7 +95,7 @@ try{
    $top=[];foreach($communities as $cm){$id=(string)($cm['id']??'');$count=0;foreach($posts as $post)if((string)($post['community_id']??'')===$id)$count++;$top[]=['name'=>(string)($cm['name']??'مجتمع'),'count'=>$count];}usort($top,static fn($a,$b)=>$b['count']<=>$a['count']);
    out(200,['stats'=>['members'=>count($users),'posts'=>count($posts),'comments'=>count($comments),'communities'=>count($communities),'banned'=>$banned,'unverified'=>$unverified],'trend'=>array_values($days),'warnings'=>$warnings,'top_communities'=>array_slice($top,0,6),'storage'=>$storage]);
   }
-  if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
+  if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'verified'=>!isset($u['verified'])||$u['verified']===true,'email'=>(string)($u['email']??''),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
 
   if($action==='admin-settings'){
    admin();$cfg=arbnt_config();
@@ -214,6 +214,11 @@ try{
  }
 
 
+ if($action==='admin-verify'){
+  admin();$id=clean($b['id']??'',64);$found=false;
+  arbnt_write('users',static function($rows)use($id,&$found){foreach($rows as &$row){if(($row['id']??'')===$id&&($row['role']??'')!=='admin'&&isset($row['verified'])&&$row['verified']===false){$row['verified']=true;unset($row['verify_hash'],$row['verify_exp']);$found=true;break;}}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'العضوية غير موجودة أو مفعلة مسبقاً']);audit('admin_verified_user',$id);out(200,['ok'=>true]);
+ }
  if($action==='admin-settings-update'){
   admin();$name=clean($b['site_name']??'',100);$description=trim((string)($b['site_description']??''));
   if(strlen($description)>320||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$description))out(422,['error'=>'الوصف غير صالح']);
