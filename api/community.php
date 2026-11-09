@@ -25,7 +25,9 @@ function sendLink(string $email,string $type,string $raw):bool{
  $host=(string)($_SERVER['HTTP_HOST']??'');
  if(!preg_match('/^[a-z0-9.-]+(?::[0-9]{1,5})?$/i',$host))return false;
  $path=($type==='verify')?'verify':'reset';
- $url='https://'.$host.'/community.html?'.$path.'='.rawurlencode($raw);
+ $script=(string)($_SERVER['SCRIPT_NAME']??'/api/community.php');
+ $base=rtrim(dirname(dirname($script)),'/');
+ $url='https://'.$host.$base.'/community.html?'.$path.'='.rawurlencode($raw);
  $subject=$type==='verify'?'ARBNT email verification':'ARBNT password reset';
  $headers="Content-Type: text/plain; charset=UTF-8\r\n";
  return mail($email,$subject,"Open this link within 30 minutes:\n".$url."\nIf you did not request this, ignore it.",$headers);
