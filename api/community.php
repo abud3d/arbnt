@@ -126,8 +126,10 @@ try{
   }
   if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');out(200,['ids'=>$mine,'items'=>array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)))]);}
   if($action==='posts'){
-   $posts=arbnt_read('posts');$community=(string)($_GET['community']??'');if($community!=='')$posts=array_values(array_filter($posts,fn($p)=>($p['community_id']??'')===$community));$posts=array_reverse($posts);
-   $page=max(1,min(100000,(int)($_GET['page']??1)));
+   $posts=arbnt_read('posts');$community=(string)($_GET['community']??'');if($community!=='')$posts=array_values(array_filter($posts,fn($p)=>($p['community_id']??'')===$community));
+   $replyCounts=[];foreach(arbnt_read('comments') as $comment){$pid=(string)($comment['post_id']??'');$replyCounts[$pid]=($replyCounts[$pid]??0)+1;}
+   foreach($posts as &$post)$post['reply_count']=$replyCounts[(string)($post['id']??'')]??0;unset($post);
+   $posts=array_reverse($posts);$page=max(1,min(100000,(int)($_GET['page']??1)));
    out(200,['items'=>array_slice($posts,($page-1)*20,20),'total'=>count($posts),'page'=>$page]);
   }
   if($action==='comments'){
