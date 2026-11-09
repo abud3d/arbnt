@@ -1,21 +1,21 @@
-# ARBNT v0.3.0 — limited server trial
+# ARBNT v0.3.0 — security trial
 
-The community MVP now supports **administrator and member login, public registration, creating posts, public reading, and logged-in replies, plus basic admin moderation**, with JSON storage and no database. **This is not production-ready for arbitrary customers.** Account recovery, email verification, spam controls, backup tooling, and security/load testing remain.
+## Implemented in repository
+- Native PHP 8.3 + JSON; no SQL, Composer, Node or file-upload endpoint.
+- Password hashes, session regeneration, CSRF token, secure-origin validation, HTTP-only SameSite cookies.
+- Public member registration with email verification (30-minute one-time link).
+- Password recovery via 30-minute one-time email link, invalidating existing sessions.
+- Login limits by IP and username, signup/recovery throttling, post/reply write throttling.
+- Admin: member bans, deletion of posts/replies, counts, recent audit events.
+- API HTTPS requirement, JSON content-type and body-size limits, text-only rendering, security log stored outside web root.
+- JSON storage outside the site's DocumentRoot, file locking and atomic updates.
 
-## Trial setup
-1. Use a fresh isolated domain DocumentRoot on Apache with PHP 8.3+.
-2. Upload the repository files into that DocumentRoot, **not** into a subdirectory of an existing website.
-3. Confirm that `dirname(DocumentRoot)/arbnt-private` is **outside every web-accessible directory or alias**, and writable by the site's PHP account. The installer creates it with permissions 0700.
-4. Visit `/install.php`, choose site name, administrator username and a strong password.
-5. **Delete install.php immediately after installation.**
-6. Open `/community.html`, log in with the administrator credentials, create a post and reply.
-7. API endpoints: `/api/community.php?action=session`, `?action=posts`, `?action=comments&post=ID`.
-8. Use HTTPS, restrict trial access to trusted testers and back up the private JSON directory.
+## Required before live launch
+- **PHP mail() must be configured and tested** with SPF/DKIM/DMARC. Email delivery is not verified.
+- **DDoS cannot be solved by PHP.** Configure web-server request limits, firewall/CSF, reverse proxy/CDN or provider network mitigation separately. None of these server settings were changed.
+- Add and test automatic backups, security regression tests, account recovery edge cases, abuse protection, and full installer hardening.
+- Current application is a trial. Do not publish publicly or distribute to customers until penetration testing and mail verification succeed.
+- No file-upload feature exists. Do not add uploads without an allowlist, isolated non-executable storage, MIME validation, and file size limits.
 
-## Limitations
-- Public registration is enabled without email verification. Limit access to trusted testers until anti-spam and email verification are implemented.
-- Anyone can read posts and replies; logged-in members can publish and reply. The administrator can ban members and delete posts/comments.
-- All posts are plain text; no HTML, files or attachments.
-- Do not delete or overwrite `arbnt-private` on code upgrades.
-- Never run the installer inside a shared document root or with an exposed private storage path.
-- This is a first functional build and needs end-to-end testing before release as an installable product.
+## Trial installation
+Use a dedicated HTTPS domain DocumentRoot, PHP 8.3+, and writable parent outside **all** publicly reachable directories. Upload project files there; open `install.php`; create the administrator; remove `install.php` immediately; open `community.html`. JSON private storage is created at `../arbnt-private` relative to the DocumentRoot. Ensure the directory is not reachable through any Apache alias, other domain or symlink. Back up private data before upgrades.
