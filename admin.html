@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#ffffff">
 <title>مركز إدارة ARBNT | شبكة العرب</title>
-<link rel="stylesheet" href="assets/admin.css?v=0.5.9">
-<script src="assets/admin.js?v=0.5.9" defer></script>
+<link rel="stylesheet" href="assets/admin.css?v=0.6.2">
+<script src="assets/admin.js?v=0.6.2" defer></script>
 </head>
 <body>
 <header class="header"><div class="head-inner">
@@ -20,6 +20,7 @@
 <button class="nav-btn" data-nav="users"><span class="ico">♙</span> الأعضاء</button>
 <button class="nav-btn" data-nav="posts"><span class="ico">▤</span> المنشورات</button>
 <button class="nav-btn" data-nav="comments"><span class="ico">☷</span> الردود</button>
+<button class="nav-btn" data-nav="reports"><span class="ico">!</span> البلاغات</button>
 <button class="nav-btn" data-nav="communities"><span class="ico">▦</span> المجتمعات</button>
 <button class="nav-btn" data-nav="security"><span class="ico">◇</span> الأمان والتنبيهات</button>
 <button class="nav-btn" data-nav="settings"><span class="ico">⚙</span> إعدادات الموقع</button>
@@ -61,6 +62,10 @@
 <section data-section="comments" class="hidden" id="section-comments">
 <div class="subsection"><div><h2>إدارة الردود</h2><p>استعراض الردود وحذف المخالف بعد التأكيد.</p></div></div>
 <div class="panel"><div class="toolbar"><input id="commentSearch" type="search" placeholder="ابحث في الردود" aria-label="البحث في الردود"><button type="button" id="commentSearchButton" class="btn">بحث</button><span id="commentCount" class="hint"></span></div><div id="commentList" class="data-list"></div><div id="commentPager" class="pagination"></div></div>
+</section>
+<section data-section="reports" class="hidden" id="section-reports">
+<div class="subsection"><div><h2>البلاغات</h2><p>آخر البلاغات المرسلة عن الأعضاء والمنشورات والتعليقات.</p></div></div>
+<div class="panel"><div id="reportList" class="data-list"></div></div>
 </section>
 <section data-section="communities" class="hidden" id="section-communities">
 <div class="subsection"><div><h2>إدارة المجتمعات</h2><p>إنشاء مجتمع أو تعديل تعريفه أو حذفه إذا كان خالياً من المنشورات.</p></div></div>
