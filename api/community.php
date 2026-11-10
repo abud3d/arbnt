@@ -110,6 +110,10 @@ function user():?array{
 }
 function admin():array{$u=requireUser();if(($u['role']??'')!=='admin')out(403,['error'=>'للمدير فقط']);return $u;}
 function requireUser():array{$u=user();if(!$u)out(401,['error'=>'سجل الدخول أولاً']);return $u;}
+function enrichPosts(array $posts,?array $me=null):array{
+ $replyCounts=[];foreach(arbnt_read('comments') as $comment){$pid=(string)($comment['post_id']??'');$replyCounts[$pid]=($replyCounts[$pid]??0)+1;}
+ foreach($posts as &$post){$post['reply_count']=$replyCounts[(string)($post['id']??'')]??0;$post['can_edit']=$me&&((($post['author_id']??'')===($me['id']??''))||($me['role']??'')==='admin');$post['can_delete']=$post['can_edit'];}unset($post);return $posts;
+}
 function token():void{
  $sent=(string)($_SERVER['HTTP_X_CSRF_TOKEN']??'');
  if(!$sent||!hash_equals((string)($_SESSION['arbnt_csrf']??''),$sent))out(403,['error'=>'رمز الحماية غير صالح']);
@@ -152,6 +156,7 @@ try{
    $counts=[];foreach($posts as $post){$id=(string)($post['community_id']??'');$counts[$id]=($counts[$id]??0)+1;}$top=[];foreach($communities as $cm){$id=(string)($cm['id']??'');$top[]=['name'=>(string)($cm['name']??'مجتمع'),'count'=>$counts[$id]??0];}usort($top,static fn($a,$b)=>$b['count']<=>$a['count']);
    out(200,['stats'=>['members'=>count($users),'posts'=>count($posts),'comments'=>count($comments),'communities'=>count($communities),'banned'=>$banned,'unverified'=>$unverified],'trend'=>array_values($days),'warnings'=>$warnings,'top_communities'=>array_slice($top,0,6),'storage'=>$storage]);
   }
+  if($action==='admin-reports'){admin();$rows=array_reverse(arbnt_read('reports'));out(200,['items'=>array_slice($rows,0,200),'total'=>count($rows)]);}
   if($action==='admin-users'){admin();$rows=[];foreach(arbnt_read('users') as $u)$rows[]=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'member','banned'=>!empty($u['banned']),'verified'=>!isset($u['verified'])||$u['verified']===true,'email'=>(string)($u['email']??''),'created_at'=>$u['created_at']??''];out(200,['items'=>$rows]);}
 
   if($action==='admin-settings'){
@@ -182,7 +187,7 @@ try{
    $me=user();$own=$me&&($me['id']??'')===($found['id']??'');
    $profile=['username'=>$found['username'],'bio'=>$found['bio']??'','profile_theme'=>$found['profile_theme']??'default','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
    if($own)$profile['verified']=!isset($found['verified'])||$found['verified']===true;
-   out(200,['profile'=>$profile,'items'=>array_reverse($items)]);
+   out(200,['profile'=>$profile,'items'=>enrichPosts(array_reverse($items),$me)]);
   }
   if($action==='notifications'){
    $me=requireUser();$items=array_values(array_filter(arbnt_read('notifications'),fn($n)=>($n['user_id']??'')===$me['id']));
@@ -190,13 +195,11 @@ try{
    $items=array_slice($items,0,30);$unread=count(array_filter($items,static fn($n)=>empty($n['read_at'])));
    out(200,['items'=>$items,'unread'=>$unread]);
   }
-  if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');out(200,['ids'=>$mine,'items'=>array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)))]);}
+  if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');$items=array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)));out(200,['ids'=>$mine,'items'=>enrichPosts($items,$me)]);}
   if($action==='posts'){
    $posts=arbnt_read('posts');$community=(string)($_GET['community']??'');if($community!=='')$posts=array_values(array_filter($posts,fn($p)=>($p['community_id']??'')===$community));
-   $replyCounts=[];foreach(arbnt_read('comments') as $comment){$pid=(string)($comment['post_id']??'');$replyCounts[$pid]=($replyCounts[$pid]??0)+1;}
-   foreach($posts as &$post)$post['reply_count']=$replyCounts[(string)($post['id']??'')]??0;unset($post);
-   $posts=array_reverse($posts);$page=max(1,min(100000,(int)($_GET['page']??1)));
-   out(200,['items'=>array_slice($posts,($page-1)*20,20),'total'=>count($posts),'page'=>$page]);
+   $posts=array_reverse($posts);$page=max(1,min(100000,(int)($_GET['page']??1)));$per=10;$me=user();
+   out(200,['items'=>enrichPosts(array_slice($posts,($page-1)*$per,$per),$me),'total'=>count($posts),'page'=>$page,'per_page'=>$per]);
   }
   if($action==='post-detail'){
    $id=(string)($_GET['id']??'');$found=null;
@@ -300,6 +303,33 @@ try{
   $found=false;$allowed=false;
   arbnt_write('posts',function($rows)use($id,$title,$text,$community,$image,$u,&$found,&$allowed){foreach($rows as &$row){if(($row['id']??'')!==$id)continue;$found=true;$allowed=(($row['author_id']??'')===$u['id'])||(($u['role']??'')==='admin');if($allowed){$row['title']=$title;$row['text']=$text;$row['community_id']=$community;$row['image']=$image;$row['updated_at']=gmdate('c');}break;}unset($row);return $rows;});
   if(!$found)out(404,['error'=>'المنشور غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية تعديل هذا المنشور']);audit('post_update',$id);out(200,['ok'=>true]);
+ }
+ if($action==='report'){
+  $kind=(string)($b['kind']??'');$target=clean($b['target_id']??'',64);$reason=trim((string)($b['reason']??''));
+  if(!in_array($kind,['user','post','comment'],true))out(422,['error'=>'نوع البلاغ غير صالح']);
+  if(strlen($reason)>500)out(422,['error'=>'سبب البلاغ طويل']);
+  $exists=false;$owner='';
+  if($kind==='user'){foreach(arbnt_read('users') as $x)if(($x['id']??'')===$target){$exists=true;$owner=(string)($x['id']??'');break;}}
+  elseif($kind==='post'){foreach(arbnt_read('posts') as $x)if(($x['id']??'')===$target){$exists=true;$owner=(string)($x['author_id']??'');break;}}
+  else{foreach(arbnt_read('comments') as $x)if(($x['id']??'')===$target){$exists=true;$owner=(string)($x['author_id']??'');break;}}
+  if(!$exists)out(404,['error'=>'العنصر غير موجود']);if($owner===$u['id'])out(422,['error'=>'لا يمكنك الإبلاغ عن محتواك']);
+  $duplicate=false;arbnt_write('reports',function($rows)use($kind,$target,$reason,$u,&$duplicate){foreach($rows as $row)if(($row['reporter_id']??'')===$u['id']&&($row['kind']??'')===$kind&&($row['target_id']??'')===$target&&empty($row['resolved_at'])){$duplicate=true;return $rows;}$rows[]=['id'=>bin2hex(random_bytes(12)),'kind'=>$kind,'target_id'=>$target,'reporter_id'=>$u['id'],'reporter'=>$u['username'],'reason'=>$reason,'created_at'=>gmdate('c'),'resolved_at'=>''];return $rows;});
+  if($duplicate)out(409,['error'=>'سبق أن أرسلت بلاغاً عن هذا العنصر']);audit('report_created',$kind.':'.$target);out(201,['ok'=>true]);
+ }
+ if($action==='post-delete'){
+  $id=clean($b['id']??'',64);$allowed=false;$found=false;
+  arbnt_write('posts',function($rows)use($id,$u,&$allowed,&$found){$out=[];foreach($rows as $row){if(($row['id']??'')===$id){$found=true;$allowed=(($row['author_id']??'')===$u['id'])||(($u['role']??'')==='admin');if($allowed)continue;}$out[]=$row;}return $out;});
+  if(!$found)out(404,['error'=>'المنشور غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية الحذف']);arbnt_write('comments',fn($rows)=>array_values(array_filter($rows,fn($x)=>($x['post_id']??'')!==$id)));out(200,['ok'=>true]);
+ }
+ if($action==='comment-update'){
+  $id=clean($b['id']??'',64);$text=clean($b['text']??'',3000);$found=false;$allowed=false;
+  arbnt_write('comments',function($rows)use($id,$text,$u,&$found,&$allowed){foreach($rows as &$row){if(($row['id']??'')!==$id)continue;$found=true;$allowed=(($row['author_id']??'')===$u['id'])||(($u['role']??'')==='admin');if($allowed){$row['text']=$text;$row['updated_at']=gmdate('c');}break;}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'التعليق غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية التعديل']);out(200,['ok'=>true]);
+ }
+ if($action==='comment-delete'){
+  $id=clean($b['id']??'',64);$found=false;$allowed=false;
+  arbnt_write('comments',function($rows)use($id,$u,&$found,&$allowed){$out=[];foreach($rows as $row){if(($row['id']??'')===$id){$found=true;$allowed=(($row['author_id']??'')===$u['id'])||(($u['role']??'')==='admin');if($allowed)continue;}$out[]=$row;}return $out;});
+  if(!$found)out(404,['error'=>'التعليق غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية الحذف']);arbnt_write('comments',function($rows)use($id){foreach($rows as &$row)if(($row['reply_to']??'')===$id)$row['reply_to']='';unset($row);return $rows;});out(200,['ok'=>true]);
  }
  if($action==='admin-storage-migrate'){
   admin();$password=(string)($b['password']??'');$valid=false;
