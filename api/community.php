@@ -185,7 +185,7 @@ try{
    if(!$found)out(404,['error'=>'العضو غير موجود']);
    $items=array_values(array_filter(arbnt_read('posts'),fn($p)=>($p['author_id']??'')===($found['id']??'')));
    $me=user();$own=$me&&($me['id']??'')===($found['id']??'');
-   $profile=['username'=>$found['username'],'bio'=>$found['bio']??'','profile_theme'=>$found['profile_theme']??'default','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
+   $profile=['id'=>$found['id'],'username'=>$found['username'],'bio'=>$found['bio']??'','profile_theme'=>$found['profile_theme']??'default','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
    if($own)$profile['verified']=!isset($found['verified'])||$found['verified']===true;
    out(200,['profile'=>$profile,'items'=>enrichPosts(array_reverse($items),$me)]);
   }
