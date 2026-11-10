@@ -180,7 +180,7 @@ try{
    if(!$found)out(404,['error'=>'العضو غير موجود']);
    $items=array_values(array_filter(arbnt_read('posts'),fn($p)=>($p['author_id']??'')===($found['id']??'')));
    $me=user();$own=$me&&($me['id']??'')===($found['id']??'');
-   $profile=['username'=>$found['username'],'bio'=>$found['bio']??'','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
+   $profile=['username'=>$found['username'],'bio'=>$found['bio']??'','profile_theme'=>$found['profile_theme']??'default','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
    if($own)$profile['verified']=!isset($found['verified'])||$found['verified']===true;
    out(200,['profile'=>$profile,'items'=>array_reverse($items)]);
   }
@@ -388,7 +388,8 @@ try{
  }
  if($action==='profile-update'){
   $bio=trim((string)($b['bio']??''));if(strlen($bio)>500||preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/',$bio))out(422,['error'=>'نبذة غير صالحة']);
-  arbnt_write('users',function($items)use($u,$bio){foreach($items as &$item)if($item['id']===$u['id'])$item['bio']=$bio;unset($item);return $items;});out(200,['ok'=>true]);
+  $theme=(string)($b['profile_theme']??'default');$themes=['default','sand','sky','mint','rose','slate'];if(!in_array($theme,$themes,true))out(422,['error'=>'لون الملف غير صالح']);
+  arbnt_write('users',function($items)use($u,$bio,$theme){foreach($items as &$item)if($item['id']===$u['id']){$item['bio']=$bio;$item['profile_theme']=$theme;}unset($item);return $items;});out(200,['ok'=>true]);
  }
  if($action==='community-create'){
   $name=clean($b['name']??'',80);$description=trim((string)($b['description']??''));
