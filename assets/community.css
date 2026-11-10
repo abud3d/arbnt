@@ -65,3 +65,16 @@ html,body{max-width:100%;overflow-x:hidden}
  .heading{flex-direction:column}
  .heading #newPost{align-self:flex-start}
 }
+
+/* v0.5.4 unified discussion pages */
+.top{height:auto;min-height:62px;padding:0;border-bottom:1px solid var(--line)}
+.feed-tools{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+.feed-tools input{min-width:0;flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:9px 11px;border-radius:7px}
+.discussion-card{display:block!important;border-bottom:1px solid var(--line);padding:20px 0!important}
+.discussion-card h2{margin:0 0 7px;font-size:18px;line-height:1.45}
+.discussion-text{margin:0 0 8px;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere}
+.meta-link{color:var(--ink);font-size:12px}.meta-link:hover{color:var(--blue)}
+.replies{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.reply-form{display:grid;gap:8px;margin-top:12px}.reply-form textarea{width:100%;min-height:90px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:9px}
+.reply-form .primary{justify-self:start}
+@media(max-width:600px){.feed-tools{align-items:stretch;flex-direction:column}.feed-tools a{align-self:flex-start}.post-toolbar{overflow-x:auto;flex-wrap:nowrap}.post-toolbar>*{flex:0 0 auto}}
