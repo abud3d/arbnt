@@ -155,7 +155,7 @@ try{
 
   if($action==='admin-settings'){
    admin();$cfg=arbnt_config();
-   out(200,['site_name'=>(string)($cfg['site_name']??'شبكة العرب'),'site_description'=>(string)($cfg['site_description']??''),'version'=>trim((string)@file_get_contents($publicRoot.'/VERSION')),'storage'=>arbnt_storage_status()]);
+   $mail=is_array($cfg['mail']??null)?$cfg['mail']:[];out(200,['site_name'=>(string)($cfg['site_name']??'شبكة العرب'),'site_description'=>(string)($cfg['site_description']??''),'version'=>trim((string)@file_get_contents($publicRoot.'/VERSION')),'storage'=>arbnt_storage_status(),'mail'=>['driver'=>(string)($mail['driver']??'mail'),'host'=>(string)($mail['host']??''),'port'=>(int)($mail['port']??587),'encryption'=>(string)($mail['encryption']??'tls'),'username'=>(string)($mail['username']??''),'from_email'=>(string)($mail['from_email']??''),'from_name'=>(string)($mail['from_name']??'ARBNT'),'configured'=>!empty($mail['host'])&&($mail['driver']??'')==='smtp']]);
   }
   if($action==='site-info'){
    $cfg=arbnt_config();out(200,['site_name'=>(string)($cfg['site_name']??'شبكة العرب'),'site_description'=>(string)($cfg['site_description']??'')]);
@@ -306,6 +306,25 @@ try{
   if(strlen($description)>320||preg_match('/[[:cntrl:]]/u',$description))out(422,['error'=>'الوصف غير صالح']);
   arbnt_write('config',static function($cfg)use($name,$description){$cfg['site_name']=$name;$cfg['site_description']=$description;$cfg['updated_at']=gmdate('c');return $cfg;});
   audit('admin_settings_update',$u['id']);out(200,['ok'=>true]);
+ }
+ if($action==='admin-mail-settings'){
+  admin();$driver=(string)($b['driver']??'mail');if(!in_array($driver,['mail','smtp'],true))out(422,['error'=>'طريقة البريد غير صالحة']);
+  $host=trim((string)($b['host']??''));$port=(int)($b['port']??587);$enc=(string)($b['encryption']??'tls');$username=trim((string)($b['username']??''));$password=(string)($b['password']??'');$from=trim((string)($b['from_email']??''));$fromName=trim((string)($b['from_name']??'ARBNT'));
+  if(!in_array($enc,['tls','ssl','none'],true)||$port<1||$port>65535)out(422,['error'=>'إعداد SMTP غير صالح']);
+  if($driver==='smtp'&&($host===''||!preg_match('/^[a-z0-9.-]+$/i',$host)))out(422,['error'=>'اسم خادم SMTP غير صالح']);
+  if($from!==''&&!filter_var($from,FILTER_VALIDATE_EMAIL))out(422,['error'=>'بريد المرسل غير صالح']);
+  if(strlen($fromName)>80||str_contains($fromName,"\n")||str_contains($fromName,"\r"))out(422,['error'=>'اسم المرسل غير صالح']);
+  arbnt_write('config',static function($cfg)use($driver,$host,$port,$enc,$username,$password,$from,$fromName){
+   $old=is_array($cfg['mail']??null)?$cfg['mail']:[];
+   $cfg['mail']=['driver'=>$driver,'host'=>$host,'port'=>$port,'encryption'=>$enc,'username'=>$username,'password'=>$password!==''?$password:(string)($old['password']??''),'from_email'=>$from,'from_name'=>$fromName];
+   return $cfg;
+  });
+  audit('admin_mail_settings',$u['id']);out(200,['ok'=>true]);
+ }
+ if($action==='admin-mail-test'){
+  admin();$target=trim((string)($b['email']??''));if(!filter_var($target,FILTER_VALIDATE_EMAIL))out(422,['error'=>'أدخل بريداً صالحاً للاختبار']);
+  $ok=sendMailMessage($target,'اختبار بريد ARBNT',"هذه رسالة اختبار من ARBNT.\nإذا وصلتك فالربط البريدي يعمل.");
+  audit($ok?'admin_mail_test_sent':'admin_mail_test_failed',$u['id']);if(!$ok)out(502,['error'=>'فشل إرسال رسالة الاختبار. تحقق من بيانات SMTP أو إعداد البريد في الاستضافة']);out(200,['ok'=>true,'message'=>'تم إرسال رسالة الاختبار']);
  }
  if($action==='admin-post-update'){
   admin();$id=clean($b['id']??'',64);$title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);
