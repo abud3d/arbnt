@@ -34,3 +34,9 @@ footer{border-top:1px solid var(--line);padding:20px;color:var(--muted);font-siz
  .post-toolbar,.post-toolbar-actions{gap:4px}
  .meta-action,.tool-action{padding:4px 5px}
 }
+
+#feed article{grid-template-columns:minmax(0,1fr);gap:0}
+.post-row{min-width:0}
+.post-toolbar-actions{margin-inline-start:auto}
+.post-body>.post-toolbar+.post-toolbar-actions{margin-top:0;justify-self:auto}
+@media(max-width:800px){#feed article{grid-template-columns:minmax(0,1fr)}}
