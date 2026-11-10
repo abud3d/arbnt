@@ -93,3 +93,9 @@ html,body{max-width:100%;overflow-x:hidden}
  .desktop-sidebar{display:none}
  .discussion-main{width:min(100%,calc(100% - 24px));margin:18px auto 50px}
 }
+
+/* v0.5.7 topic links */
+.discussion-title{color:var(--ink);text-decoration:none}
+.discussion-title:hover{color:var(--blue)}
+.discussion-community{cursor:pointer;text-decoration:none}
+.discussion-community:hover{text-decoration:underline}
