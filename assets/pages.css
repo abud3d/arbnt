@@ -70,3 +70,8 @@ html[dir="ltr"] .back-arrow svg{transform:rotate(180deg)}
 #createCommunity.create-action{width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;display:inline-grid!important;place-items:center!important}
 .mobile-drawer .sidebar-extras a{font-size:12px}
 }
+
+/* v0.6.7 pinned topics */
+.post-pinned{display:inline-flex;align-items:center;gap:5px;flex:none;white-space:nowrap;padding:3px 9px;border-radius:999px;border:1px solid #c99523;background:#fff2c6;color:#765000;font-size:11px;font-weight:750;line-height:1.5}
+html.dark .post-pinned{background:#493b17;color:#ffe3a0;border-color:#95752c}
+.post-card-head{flex-wrap:wrap}
