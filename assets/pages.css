@@ -25,3 +25,8 @@ html.dark .profile-theme-sand{background:#2c271f}html.dark .profile-theme-sky{ba
 .tool-action{border:0;background:transparent;color:var(--muted);padding:5px 7px;border-radius:7px}
 .tool-action:hover{background:var(--soft);color:var(--ink)}
 .comment-head a{display:inline-flex;align-items:center;gap:5px}
+
+/* v0.6.2 shared cards */
+.post-card-head{display:flex;align-items:flex-start;gap:10px}.post-card-head h1,.post-card-head h2{flex:1;min-width:0;margin-top:0}.post-card-head>.more-wrap{margin-inline-start:auto}.comment-head>.more-wrap{margin-inline-start:auto}
+.profile-title-row{display:flex;align-items:center;gap:8px}.profile-title-row h1{flex:1}
+.author-link,.comment-author{display:inline-flex;align-items:center;gap:5px}
