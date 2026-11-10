@@ -99,3 +99,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .discussion-title:hover{color:var(--blue)}
 .discussion-community{cursor:pointer;text-decoration:none}
 .discussion-community:hover{text-decoration:underline}
+
+.tree-comment{margin-inline-start:calc(var(--depth,0) * 18px);border-inline-start:2px solid var(--line);padding-inline-start:10px}
+.comment-head{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.comment-actions{display:flex;gap:6px;margin-top:4px}
