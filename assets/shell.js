@@ -32,7 +32,7 @@ if(header){
 function decorateSidebars(){document.querySelectorAll('.app-sidebar a').forEach(a=>{if(a.querySelector('.ui-icon'))return;const h=a.getAttribute('href')||'';let name='chat';if(h.includes('communities'))name='users';else if(h.includes('favorites'))name='heart';else if(h.includes('profile'))name='user';else if(h.includes('publish'))name='plus';a.insertAdjacentHTML('afterbegin',icon(name))})}
 decorateSidebars();
 const footer=document.querySelector('footer');if(footer)footer.innerHTML='<div class="arb-footer"><span>© 2026 <b>ARBNT</b></span><span><a href="https://github.com/abud3d/arbnt/blob/main/VERSION" target="_blank" rel="noopener noreferrer">ARBNT v0.6.1</a></span></div>';
-function applyTheme(){const dark=document.documentElement.classList.contains('dark'),b=document.getElementById('theme');if(b)b.innerHTML=icon(dark?'sun':'moon')}
+function applyTheme(){const dark=document.documentElement.classList.contains('dark'),b=document.getElementById('theme');document.documentElement.dataset.theme=dark?'dark':'light';if(b)b.innerHTML=icon(dark?'sun':'moon')}
 try{document.documentElement.classList.toggle('dark',localStorage.getItem('arbnt-theme')==='dark'||(!localStorage.getItem('arbnt-theme')&&matchMedia('(prefers-color-scheme:dark)').matches))}catch(e){}applyTheme();
 const theme=document.getElementById('theme');if(theme)theme.onclick=e=>{e.stopPropagation();document.documentElement.classList.toggle('dark');try{localStorage.setItem('arbnt-theme',document.documentElement.classList.contains('dark')?'dark':'light')}catch(x){}applyTheme()};
 const langSwitch=document.getElementById('langSwitch');if(langSwitch)langSwitch.onclick=e=>{e.stopPropagation();try{localStorage.setItem('arbnt-lang',lang()==='en'?'ar':'en')}catch(x){}location.reload()};
