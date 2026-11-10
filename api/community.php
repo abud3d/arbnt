@@ -24,13 +24,32 @@ function audit(string $event,string $subject=''):void{
 function sendLink(string $email,string $type,string $raw):bool{
  $host=(string)($_SERVER['HTTP_HOST']??'');
  if(!preg_match('/^[a-z0-9.-]+(?::[0-9]{1,5})?$/i',$host))return false;
- $path=($type==='verify')?'verify':'reset';
+ $domain=strtolower((string)parse_url('https://'.$host,PHP_URL_HOST));
+ if(!$domain||!preg_match('/^[a-z0-9.-]+$/',$domain))return false;
+ $page=$type==='verify'?'login.html':'forgot.html';
+ $param=$type==='verify'?'verify':'reset';
  $script=(string)($_SERVER['SCRIPT_NAME']??'/api/community.php');
  $base=rtrim(dirname(dirname($script)),'/');
- $url='https://'.$host.$base.'/community.html?'.$path.'='.rawurlencode($raw);
- $subject=$type==='verify'?'ARBNT email verification':'ARBNT password reset';
- $headers="Content-Type: text/plain; charset=UTF-8\r\n";
- return mail($email,$subject,"Open this link within 30 minutes:\n".$url."\nIf you did not request this, ignore it.",$headers);
+ $url='https://'.$host.$base.'/'.$page.'?'.$param.'='.rawurlencode($raw);
+ $subject=$type==='verify'?'تفعيل عضويتك في ARBNT':'استعادة كلمة المرور في ARBNT';
+ $from='no-reply@'.$domain;
+ $headers=[
+  'MIME-Version: 1.0',
+  'Content-Type: text/plain; charset=UTF-8',
+  'Content-Transfer-Encoding: 8bit',
+  'From: ARBNT <'.$from.'>',
+  'Reply-To: '.$from,
+  'X-Mailer: PHP/'.PHP_VERSION
+ ];
+ $body=$type==='verify'
+  ?"مرحباً بك في ARBNT\n\nلتفعيل عضويتك افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب التسجيل فتجاهل الرسالة."
+  :"لاستعادة كلمة المرور افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب الاستعادة فتجاهل الرسالة.";
+ $headerText=implode("\r\n",$headers);
+ $sent=false;
+ try{$sent=@mail($email,$subject,$body,$headerText,'-f'.$from);}catch(Throwable $e){}
+ if(!$sent){try{$sent=@mail($email,$subject,$body,$headerText);}catch(Throwable $e){}}
+ if(!$sent)audit('mail_failed',$type.':'.substr(hash('sha256',$email),0,12));
+ return $sent;
 }
 function out(int $code,array $data):never{arbnt_json($code,$data);}
 function body():array{
@@ -122,7 +141,10 @@ try{
    foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),$name)===0){$found=$member;break;}
    if(!$found)out(404,['error'=>'العضو غير موجود']);
    $items=array_values(array_filter(arbnt_read('posts'),fn($p)=>($p['author_id']??'')===($found['id']??'')));
-   out(200,['profile'=>['username'=>$found['username'],'bio'=>$found['bio']??'','created_at'=>$found['created_at']??'','posts'=>count($items)],'items'=>array_reverse($items)]);
+   $me=user();$own=$me&&($me['id']??'')===($found['id']??'');
+   $profile=['username'=>$found['username'],'bio'=>$found['bio']??'','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
+   if($own){$profile['email']=$found['email']??'';$profile['verified']=!isset($found['verified'])||$found['verified']===true;}
+   out(200,['profile'=>$profile,'items'=>array_reverse($items)]);
   }
   if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');out(200,['ids'=>$mine,'items'=>array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)))]);}
   if($action==='posts'){
@@ -175,6 +197,15 @@ try{
   if($exists)out(409,['error'=>'اسم المستخدم أو البريد محجوز']);
   $sent=sendLink($email,'verify',$raw);audit('registered',$name);
   out(201,['ok'=>true,'mail_sent'=>$sent,'message'=>$sent?'راجع بريدك لتفعيل العضوية':'تعذر إرسال رسالة التفعيل؛ تواصل مع الإدارة']);
+ }
+ if($action==='resend-verification'){
+  throttle('resend:'.($_SERVER['REMOTE_ADDR']??'unknown'),30);
+  $email=strtolower(clean($b['email']??'',254));if(!filter_var($email,FILTER_VALIDATE_EMAIL))out(422,['error'=>'البريد غير صالح']);
+  $raw=bin2hex(random_bytes(32));$found=false;
+  arbnt_write('users',function($rows)use($email,$raw,&$found){foreach($rows as &$row){if(strcasecmp((string)($row['email']??''),$email)===0&&isset($row['verified'])&&$row['verified']===false){$row['verify_hash']=hash('sha256',$raw);$row['verify_exp']=time()+1800;$found=true;break;}}unset($row);return $rows;});
+  $sent=$found?sendLink($email,'verify',$raw):true;
+  audit('verification_resent',$found?'matched':'hidden');
+  out(200,['ok'=>true,'mail_sent'=>$sent,'message'=>$sent?'إذا كان الحساب يحتاج تفعيل فقد أرسلنا رابطاً جديداً.':'تعذر على الخادم إرسال البريد. راجع إعداد البريد في الاستضافة.']);
  }
  if($action==='login'){
   throttle('login:'.($_SERVER['REMOTE_ADDR']??'unknown'),2);
