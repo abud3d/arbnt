@@ -49,7 +49,6 @@ async function load(){
   for(const p of data.items){
    const hay=[p.title,p.text,p.author].filter(Boolean).join(' ').toLocaleLowerCase();if(q&& !hay.includes(q))continue;visible++;
    const a=element('article');
-   const count=element('div',undefined,'count');count.append(element('b',String(p.reply_count??0)),element('span','ردود'));
    const row=element('div',undefined,'post-row'),body=element('div',undefined,'post-body');
    if(p.image){const img=element('img');img.src=p.image;img.alt='صورة الموضوع';img.loading='lazy';img.referrerPolicy='no-referrer';img.className='post-thumb';body.append(img)}
    const title=element('h2',p.title);
@@ -59,9 +58,9 @@ async function load(){
    if(cm){const communityBtn=element('button','▣ '+cm.name,'meta-action community-action');communityBtn.type='button';communityBtn.onclick=()=>{communityFilter=cm.id;switchView('all')};meta.append(communityBtn)}
    meta.append(element('span','◷ '+ago(p.created_at),'meta-time'));
    const actions=element('div',undefined,'post-actions post-toolbar-actions');
-   body.append(title,element('p',p.text),meta,actions);
+   meta.append(actions);body.append(title,element('p',p.text),meta);
    if(account){const fav=element('button',favorites.has(p.id)?'♥ محفوظ':'♡ مفضلة','tool-action favorite-action');fav.type='button';fav.onclick=async()=>{try{const v=await api('favorite',{id:p.id});if(v.saved)favorites.add(p.id);else favorites.delete(p.id);fav.textContent=v.saved?'♥ محفوظ':'♡ حفظ';if(view==='favorites')load()}catch(e){message(e.message)}};actions.append(fav)}
-   const toggle=element('button','💬 '+String(p.reply_count??0)+' رد','tool-action replies-action');toggle.type='button';actions.append(toggle);row.append(body);a.append(count,row);
+   const toggle=element('button','💬 '+String(p.reply_count??0)+' رد','tool-action replies-action');toggle.type='button';actions.append(toggle);row.append(body);a.append(row);
    const replies=element('div');replies.hidden=true;replies.style.gridColumn='2';
    toggle.onclick=async()=>{
     replies.hidden=!replies.hidden;if(replies.hidden)return;
@@ -70,7 +69,7 @@ async function load(){
      const data=await api('comments&post='+encodeURIComponent(p.id));replies.replaceChildren();
      for(const cmt of data.items){const div=element('div',undefined,'comment');div.append(element('strong',cmt.author),element('p',cmt.text));if(account?.role==='admin'){const del=element('button','حذف الرد');del.onclick=async()=>{if(!confirm('حذف الرد؟'))return;try{await api('admin-delete',{kind:'comments',id:cmt.id});replies.hidden=true;toggle.click()}catch(e){message(e.message)}};div.append(del)}replies.append(div)}
      if(!data.items.length)replies.append(element('p','لا توجد ردود.'));
-     if(account){const form=element('form'),input=element('textarea'),send=element('button','إرسال الرد');input.required=true;input.maxLength=3000;input.placeholder='اكتب ردك';form.append(input,send);form.onsubmit=async ev=>{ev.preventDefault();send.disabled=true;try{await api('comment',{post_id:p.id,text:input.value});p.reply_count=Number(p.reply_count||0)+1;count.querySelector('b').textContent=String(p.reply_count);toggle.textContent='💬 '+String(p.reply_count)+' رد';replies.hidden=true;toggle.click()}catch(e){message(e.message)}finally{send.disabled=false}};replies.append(form)}
+     if(account){const form=element('form'),input=element('textarea'),send=element('button','إرسال الرد');input.required=true;input.maxLength=3000;input.placeholder='اكتب ردك';form.append(input,send);form.onsubmit=async ev=>{ev.preventDefault();send.disabled=true;try{await api('comment',{post_id:p.id,text:input.value});p.reply_count=Number(p.reply_count||0)+1;toggle.textContent='💬 '+String(p.reply_count)+' رد';replies.hidden=true;toggle.click()}catch(e){message(e.message)}finally{send.disabled=false}};replies.append(form)}
     }catch(e){replies.replaceChildren(element('p',e.message))}
    };
    if(account?.role==='admin'){actions.append(actionDeletePost(p.id))}
