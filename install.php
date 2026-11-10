@@ -63,7 +63,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&!$installed){
  if(!$errors){
   try{
    if(is_file($private.'/users.json'))throw new RuntimeException('Already initialized');
-   $config=['site_name'=>$site,'site_description'=>'مساحة عربية للمنشورات والأفكار والنقاشات.','created_at'=>gmdate('c'),'version'=>'0.5.0'];
+   $config=['site_name'=>$site,'site_description'=>'مساحة عربية للمنشورات والأفكار والنقاشات.','created_at'=>gmdate('c'),'version'=>'0.5.4'];
    foreach(['config'=>$config,'users'=>[['id'=>bin2hex(random_bytes(12)),'username'=>$user,'password_hash'=>password_hash($pass,PASSWORD_DEFAULT),'role'=>'admin','created_at'=>gmdate('c')]],'posts'=>[],'communities'=>[],'comments'=>[]] as $key=>$data){
     $file=$private.'/'.$key.'.json';
     $fp=@fopen($file,'x');if(!$fp)throw new RuntimeException('Cannot create '.$key);
