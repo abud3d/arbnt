@@ -186,17 +186,29 @@ try{
   if(!$found)out(400,['error'=>'رابط منتهي أو مستخدم']);audit('password_reset');out(200,['ok'=>true]);
  }
  if($action==='register'){
-  throttle('register:'.($_SERVER['REMOTE_ADDR']??'unknown'),30);
   $name=clean($b['username']??'',32);$password=(string)($b['password']??'');
-  $email=strtolower(clean($b['email']??'',254));if(!filter_var($email,FILTER_VALIDATE_EMAIL))out(422,['error'=>'البريد غير صالح']);
+  $email=strtolower(clean($b['email']??'',254));
+  if(!filter_var($email,FILTER_VALIDATE_EMAIL))out(422,['error'=>'البريد غير صالح']);
   if(!preg_match('/^[a-zA-Z0-9_]{3,32}$/',$name)||strlen($password)<12||strlen($password)>256)out(422,['error'=>'اسم المستخدم 3-32 حرفاً إنجليزياً أو رقماً، وكلمة المرور 12 حرفاً على الأقل']);
+  foreach(arbnt_read('users') as $existing){
+   if(strcasecmp((string)($existing['username']??''),$name)===0)out(409,['error'=>'اسم المستخدم مستخدم مسبقاً']);
+   if(strcasecmp((string)($existing['email']??''),$email)===0)out(409,['error'=>'البريد الإلكتروني مستخدم مسبقاً']);
+  }
+  throttle('register:'.($_SERVER['REMOTE_ADDR']??'unknown'),15);
   $raw=bin2hex(random_bytes(32));
   $new=['id'=>bin2hex(random_bytes(12)),'username'=>$name,'email'=>$email,'verified'=>false,'verify_hash'=>hash('sha256',$raw),'verify_exp'=>time()+1800,'password_hash'=>password_hash($password,PASSWORD_DEFAULT),'role'=>'member','created_at'=>gmdate('c')];
-  $exists=false;
-  arbnt_write('users',function($a)use($new,&$exists){foreach($a as $u){if(strcasecmp($u['username'],$new['username'])===0||strcasecmp((string)($u['email']??''),$new['email'])===0){$exists=true;return $a;}}$a[]=$new;return $a;});
-  if($exists)out(409,['error'=>'اسم المستخدم أو البريد محجوز']);
-  $sent=sendLink($email,'verify',$raw);audit('registered',$name);
-  out(201,['ok'=>true,'mail_sent'=>$sent,'message'=>$sent?'راجع بريدك لتفعيل العضوية':'تعذر إرسال رسالة التفعيل؛ تواصل مع الإدارة']);
+  $conflict='';
+  arbnt_write('users',function($rows)use($new,&$conflict){
+   foreach($rows as $row){
+    if(strcasecmp((string)($row['username']??''),$new['username'])===0){$conflict='username';return $rows;}
+    if(strcasecmp((string)($row['email']??''),$new['email'])===0){$conflict='email';return $rows;}
+   }
+   $rows[]=$new;return $rows;
+  });
+  if($conflict==='username')out(409,['error'=>'اسم المستخدم مستخدم مسبقاً']);
+  if($conflict==='email')out(409,['error'=>'البريد الإلكتروني مستخدم مسبقاً']);
+  $sent=sendLink($email,'verify',$raw);audit($sent?'registered_mail_sent':'registered_mail_failed',$name);
+  out(201,['ok'=>true,'mail_sent'=>$sent,'message'=>$sent?'تم التسجيل. أرسلنا رابط التفعيل إلى بريدك؛ افتحه لإكمال العضوية.':'تم التسجيل، لكن خادم الاستضافة لم يرسل بريد التفعيل. أعد الإرسال من نفس الصفحة أو راجع إعداد البريد في الاستضافة.']);
  }
  if($action==='resend-verification'){
   throttle('resend:'.($_SERVER['REMOTE_ADDR']??'unknown'),30);
