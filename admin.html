@@ -30,7 +30,7 @@
 <main class="main" id="main">
 <div class="heading"><div><span class="eyebrow">ARBNT / CONTROL CENTER</span><h1 id="sectionTitle">لوحة المؤشرات</h1><p id="sectionSubtitle">متابعة المجتمع من مكان واحد، بلا تعقيد.</p></div><div class="heading-right"><button class="btn" type="button" id="refresh">↻ تحديث</button></div></div>
 <p class="feedback" id="notice" role="status" aria-live="polite"></p>
-<section id="gate" class="gate hidden"><h2>تسجيل دخول المدير</h2><p>يجب تسجيل الدخول بحساب المدير للوصول إلى الإدارة. لا تُعرض أي بيانات إدارية للزوار.</p><a class="btn primary" href="community.html?view=auth">تسجيل الدخول</a></section>
+<section id="gate" class="gate hidden"><h2>تسجيل دخول المدير</h2><p>يجب تسجيل الدخول بحساب المدير للوصول إلى الإدارة. لا تُعرض أي بيانات إدارية للزوار.</p><a class="btn primary" href="login.html">تسجيل الدخول</a></section>
 <div id="dashboard" class="hidden">
 <section data-section="overview" id="section-overview">
 <div class="metrics">
@@ -76,7 +76,7 @@
 <section data-section="settings" class="hidden" id="section-settings">
 <div class="subsection"><div><h2>إعدادات شبكة العرب</h2><p>الهوية العامة الأساسية دون تعديلات على الملفات أو قاعدة بيانات.</p></div></div>
 <div class="panel"><h2>تعريف الموقع</h2><form id="settingsForm" class="form-stack"><label>اسم الموقع<input name="site_name" required maxlength="100" placeholder="شبكة العرب"></label><label>وصف الموقع<textarea name="site_description" maxlength="320" placeholder="نبذة قصيرة تظهر في واجهة المجتمع"></textarea></label><div><button class="btn primary" type="submit">حفظ الإعدادات</button></div></form><p class="hint">يظهر الوصف في صفحة المجتمع. لا يغيّر هذا الإعداد النصوص الثابتة في الصفحة التعريفية الأصلية.</p></div>
-<div class="panel"><h2>معلومات التثبيت</h2><div id="systemInfo" class="kv"></div></div>
+<div class="panel"><h2>البريد والتفعيل</h2><form id="mailSettingsForm" class="form-stack"><div class="fields"><label>طريقة الإرسال<select name="driver"><option value="mail">PHP mail()</option><option value="smtp">SMTP</option></select></label><label>خادم SMTP<input name="host" placeholder="smtp.example.com"></label><label>المنفذ<input name="port" type="number" min="1" max="65535" value="587"></label><label>التشفير<select name="encryption"><option value="tls">STARTTLS</option><option value="ssl">SSL/TLS</option><option value="none">بدون</option></select></label><label>اسم المستخدم<input name="username" autocomplete="username"></label><label>كلمة مرور SMTP<input name="password" type="password" autocomplete="new-password" placeholder="اتركها فارغة للإبقاء على الحالية"></label><label>بريد المرسل<input name="from_email" type="email" placeholder="no-reply@example.com"></label><label>اسم المرسل<input name="from_name" maxlength="80" value="ARBNT"></label></div><div class="toolbar"><button class="btn primary" type="submit">حفظ إعدادات البريد</button></div></form><form id="mailTestForm" class="toolbar"><input name="email" type="email" required placeholder="البريد الذي سيستقبل رسالة الاختبار"><button class="btn" type="submit">إرسال اختبار</button></form><p class="hint" id="mailStatus"></p></div><div class="panel"><h2>معلومات التثبيت</h2><div id="systemInfo" class="kv"></div></div>
 </section>
 <section data-section="definitions" class="hidden" id="section-definitions">
 <div class="subsection"><div><h2>التعريفات وقراءة المؤشرات</h2><p>ما الذي تُظهره الأرقام، وما الذي لا يمكن استنتاجه منها.</p></div></div>
