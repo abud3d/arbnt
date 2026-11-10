@@ -40,3 +40,28 @@ footer{border-top:1px solid var(--line);padding:20px;color:var(--muted);font-siz
 .post-toolbar-actions{margin-inline-start:auto}
 .post-body>.post-toolbar+.post-toolbar-actions{margin-top:0;justify-self:auto}
 @media(max-width:800px){#feed article{grid-template-columns:minmax(0,1fr)}}
+
+/* v0.5.3 mobile containment */
+html,body{max-width:100%;overflow-x:hidden}
+.layout,.main,#feed,.post-row,.post-body{min-width:0;max-width:100%}
+@media(max-width:800px){
+ .layout{display:block;width:100%;max-width:100%}
+ aside{display:block;position:fixed;top:58px;right:0;left:auto;width:min(82vw,280px);height:calc(100dvh - 58px);z-index:20;background:var(--bg);border-inline-end:0;border-inline-start:1px solid var(--line);transform:translateX(105%);transition:transform .18s ease;box-shadow:-10px 0 30px rgba(0,0,0,.10);overflow:auto}
+ .mobile-open aside{transform:translateX(0)}
+ .mobile-open .layout{display:block;width:100%}
+ .mobile-open .main{padding:18px 12px;width:100%;max-width:100%}
+ .main{width:100%;max-width:100%;padding:18px 12px}
+ .top{width:100%;max-width:100%;overflow:hidden}
+ .search{min-width:0;flex:1 1 auto}
+ .search input{min-width:0}
+ .post-toolbar{overflow-x:auto;flex-wrap:nowrap;max-width:100%;padding-bottom:2px}
+ .post-toolbar>*{flex:0 0 auto}
+}
+@media(max-width:480px){
+ .top{grid-template-columns:auto auto minmax(0,1fr) auto}
+ .logo{max-width:92px;overflow:hidden;text-overflow:ellipsis}
+ .search{max-width:none}
+ .actions{flex:0 0 auto}
+ .heading{flex-direction:column}
+ .heading #newPost{align-self:flex-start}
+}
