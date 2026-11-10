@@ -17,3 +17,10 @@
  .mobile-drawer nav{display:grid;gap:4px}.mobile-drawer a{display:block;padding:11px 12px;border-radius:7px;color:var(--ink,#222);text-decoration:none}.mobile-drawer a:hover{background:var(--soft,var(--panel,#f5f7fa))}
  body.drawer-open{overflow:hidden}
 }
+
+.notify-bell{position:relative}
+.notify-count{position:absolute;top:-7px;inset-inline-end:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#c62828;color:#fff;font-size:10px;line-height:18px;text-align:center}
+.notify-panel{position:fixed;top:64px;inset-inline-end:20px;width:min(360px,calc(100vw - 24px));max-height:420px;overflow:auto;background:var(--bg,#fff);border:1px solid var(--line,#e5e5e5);border-radius:9px;box-shadow:0 14px 40px #0002;z-index:80;padding:8px}
+.notify-panel a{display:block;padding:10px 11px;border-bottom:1px solid var(--line,#e5e5e5);color:var(--ink,#222);font-size:12px}
+.notify-panel a:last-child{border-bottom:0}.notify-panel a.unread{background:var(--soft,#f6f7f9);font-weight:700}.notify-panel p{margin:0;padding:12px;color:var(--muted,#667085)}
+@media(max-width:760px){.notify-panel{top:58px;inset-inline-end:8px}}
