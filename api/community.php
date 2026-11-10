@@ -181,8 +181,14 @@ try{
    $items=array_values(array_filter(arbnt_read('posts'),fn($p)=>($p['author_id']??'')===($found['id']??'')));
    $me=user();$own=$me&&($me['id']??'')===($found['id']??'');
    $profile=['username'=>$found['username'],'bio'=>$found['bio']??'','created_at'=>$found['created_at']??'','posts'=>count($items),'own'=>$own];
-   if($own){$profile['email']=$found['email']??'';$profile['verified']=!isset($found['verified'])||$found['verified']===true;}
+   if($own)$profile['verified']=!isset($found['verified'])||$found['verified']===true;
    out(200,['profile'=>$profile,'items'=>array_reverse($items)]);
+  }
+  if($action==='notifications'){
+   $me=requireUser();$items=array_values(array_filter(arbnt_read('notifications'),fn($n)=>($n['user_id']??'')===$me['id']));
+   usort($items,static fn($a,$b)=>strcmp((string)($b['created_at']??''),(string)($a['created_at']??'')));
+   $items=array_slice($items,0,30);$unread=count(array_filter($items,static fn($n)=>empty($n['read_at'])));
+   out(200,['items'=>$items,'unread'=>$unread]);
   }
   if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');out(200,['ids'=>$mine,'items'=>array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)))]);}
   if($action==='posts'){
@@ -282,6 +288,11 @@ try{
  if($action==='logout'){audit('logout');$_SESSION=[];session_regenerate_id(true);out(200,['ok'=>true]);}
  $u=requireUser();
  throttle('write:'.$u['id'],2);
+ if($action==='notifications-read'){
+  $id=trim((string)($b['id']??''));$now=gmdate('c');
+  arbnt_write('notifications',function($rows)use($u,$id,$now){foreach($rows as &$row){if(($row['user_id']??'')!==$u['id'])continue;if($id===''||($row['id']??'')===$id){$row['read_at']=$now;if($id!=='')break;}}unset($row);return $rows;});
+  out(200,['ok'=>true]);
+ }
  if($action==='post-update'){
   $id=clean($b['id']??'',64);$title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);$community=(string)($b['community_id']??'');
   $valid=$community==='';foreach(arbnt_read('communities') as $cm)if(($cm['id']??'')===$community)$valid=true;if(!$valid)out(422,['error'=>'المجتمع غير موجود']);
@@ -394,11 +405,16 @@ try{
   out(201,['item'=>$post]);
  }
  if($action==='comment'){
-  $postId=clean($b['post_id']??'',64);$text=clean($b['text']??'',3000);
-  $exists=false;foreach(arbnt_read('posts') as $p){if(($p['id']??'')===$postId){$exists=true;break;}}
-  if(!$exists)out(404,['error'=>'المنشور غير موجود']);
-  $comment=['id'=>bin2hex(random_bytes(12)),'post_id'=>$postId,'text'=>$text,'author'=>$u['username'],'author_id'=>$u['id'],'created_at'=>gmdate('c')];
+  $postId=clean($b['post_id']??'',64);$text=clean($b['text']??'',3000);$replyTo=trim((string)($b['reply_to']??''));
+  $post=null;foreach(arbnt_read('posts') as $p){if(($p['id']??'')===$postId){$post=$p;break;}}
+  if(!$post)out(404,['error'=>'المنشور غير موجود']);
+  $parent=null;if($replyTo!==''){foreach(arbnt_read('comments') as $row){if(($row['id']??'')===$replyTo&&($row['post_id']??'')===$postId){$parent=$row;break;}}if(!$parent)out(422,['error'=>'الرد المحدد غير موجود']);}
+  $comment=['id'=>bin2hex(random_bytes(12)),'post_id'=>$postId,'text'=>$text,'author'=>$u['username'],'author_id'=>$u['id'],'reply_to'=>$parent['id']??'','created_at'=>gmdate('c')];
   arbnt_write('comments',function($a)use($comment){$a[]=$comment;return $a;});
+  $targets=[];
+  if(($post['author_id']??'')!==$u['id'])$targets[(string)$post['author_id']]=['type'=>'post_reply','text'=>$u['username'].' رد على موضوعك: '.($post['title']??'')];
+  if($parent&&($parent['author_id']??'')!==$u['id'])$targets[(string)$parent['author_id']]=['type'=>'comment_reply','text'=>$u['username'].' رد على تعليقك في: '.($post['title']??'')];
+  if($targets){arbnt_write('notifications',function($rows)use($targets,$post,$comment){foreach($targets as $uid=>$info)$rows[]=['id'=>bin2hex(random_bytes(12)),'user_id'=>$uid,'type'=>$info['type'],'text'=>$info['text'],'post_id'=>$post['id'],'comment_id'=>$comment['id'],'read_at'=>'','created_at'=>gmdate('c')];if(count($rows)>3000)$rows=array_slice($rows,-3000);return $rows;});}
   out(201,['item'=>$comment]);
  }
  out(404,['error'=>'غير موجود']);
