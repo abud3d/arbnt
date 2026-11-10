@@ -103,3 +103,14 @@ html,body{max-width:100%;overflow-x:hidden}
 .tree-comment{margin-inline-start:calc(var(--depth,0) * 18px);border-inline-start:2px solid var(--line);padding-inline-start:10px}
 .comment-head{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
 .comment-actions{display:flex;gap:6px;margin-top:4px}
+
+/* v0.6.2 cards, menus and pagination */
+.post-card-head{display:flex;align-items:flex-start;gap:10px}.post-card-head h1,.post-card-head h2{flex:1;min-width:0}.post-card-head>.more-wrap{margin-inline-start:auto}
+.comment-head>.more-wrap{margin-inline-start:auto}
+.reply-action{margin-top:4px}
+.pagination #pages{display:flex;align-items:center;gap:5px}
+.page-number{min-width:34px;height:34px;padding:0 9px;border:1px solid var(--line);background:var(--bg);border-radius:7px}
+.page-number.active{background:var(--blue);color:#fff;border-color:var(--blue);opacity:1}
+.page-gap{padding:0 3px}
+.author-link,.comment-author{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:600px){.tree-comment{margin-inline-start:calc(var(--depth,0) * 10px)}.comment-head{gap:6px}.reply-action{display:inline-flex!important}.post-card-head>.more-wrap,.comment-head>.more-wrap{flex:none}}
