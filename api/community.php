@@ -205,7 +205,7 @@ try{
    $id=(string)($_GET['id']??'');$found=null;
    foreach(arbnt_read('posts') as $post)if(($post['id']??'')===$id){$found=$post;break;}
    if(!$found)out(404,['error'=>'المنشور غير موجود']);
-   $me=user();$found['can_edit']=$me&&((($me['id']??'')===($found['author_id']??''))||($me['role']??'')==='admin');
+   $me=user();$found['can_edit']=$me&&((($me['id']??'')===($found['author_id']??''))||($me['role']??'')==='admin');$found['can_delete']=$found['can_edit'];
    $cm=null;foreach(arbnt_read('communities') as $row)if(($row['id']??'')===($found['community_id']??'')){$cm=$row;break;}
    $found['community_name']=$cm['name']??'عام';out(200,['item'=>$found]);
   }
@@ -319,7 +319,7 @@ try{
  if($action==='post-delete'){
   $id=clean($b['id']??'',64);$allowed=false;$found=false;
   arbnt_write('posts',function($rows)use($id,$u,&$allowed,&$found){$out=[];foreach($rows as $row){if(($row['id']??'')===$id){$found=true;$allowed=(($row['author_id']??'')===$u['id'])||(($u['role']??'')==='admin');if($allowed)continue;}$out[]=$row;}return $out;});
-  if(!$found)out(404,['error'=>'المنشور غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية الحذف']);arbnt_write('comments',fn($rows)=>array_values(array_filter($rows,fn($x)=>($x['post_id']??'')!==$id)));out(200,['ok'=>true]);
+  if(!$found)out(404,['error'=>'المنشور غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية الحذف']);arbnt_write('comments',fn($rows)=>array_values(array_filter($rows,fn($x)=>($x['post_id']??'')!==$id)));arbnt_write('favorites',fn($rows)=>array_values(array_filter($rows,fn($x)=>($x['post_id']??'')!==$id)));out(200,['ok'=>true]);
  }
  if($action==='comment-update'){
   $id=clean($b['id']??'',64);$text=clean($b['text']??'',3000);$found=false;$allowed=false;
