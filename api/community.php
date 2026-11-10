@@ -207,7 +207,7 @@ try{
    if(!$found)out(404,['error'=>'المنشور غير موجود']);
    $me=user();$found['can_edit']=$me&&((($me['id']??'')===($found['author_id']??''))||($me['role']??'')==='admin');$found['can_delete']=$found['can_edit'];
    $cm=null;foreach(arbnt_read('communities') as $row)if(($row['id']??'')===($found['community_id']??'')){$cm=$row;break;}
-   $found['community_name']=$cm['name']??'عام';out(200,['item'=>$found]);
+   $found['community_name']=$cm['name']??'عام';$found['community_name_en']=$cm['name_en']??'';$found['community_icon']=$cm['icon']??'chat';$found['community_color']=$cm['color']??'#0869b1';out(200,['item'=>$found]);
   }
   if($action==='comments'){
    throttle('read:'.($_SERVER['REMOTE_ADDR']??'unknown'),1);
@@ -399,9 +399,12 @@ try{
   if(!$found)out(404,['error'=>'المنشور غير موجود']);audit('admin_post_update',$id);out(200,['ok'=>true]);
  }
  if($action==='admin-community-update'){
-  admin();$id=clean($b['id']??'',64);$name=clean($b['name']??'',80);$description=trim((string)($b['description']??''));
+  admin();$id=clean($b['id']??'',64);$name=clean($b['name']??'',80);$nameEn=trim((string)($b['name_en']??''));$description=trim((string)($b['description']??''));$icon=(string)($b['icon']??'chat');$color=(string)($b['color']??'#0869b1');
+  if($nameEn!==''&&(!preg_match('/^[A-Za-z0-9][A-Za-z0-9 &._-]{1,79}$/',$nameEn)))out(422,['error'=>'الاسم الإنجليزي غير صالح']);
   if(strlen($description)>500||preg_match('/[[:cntrl:]]/u',$description))out(422,['error'=>'الوصف غير صالح']);
-  $found=false;arbnt_write('communities',static function($rows)use($id,$name,$description,&$found){foreach($rows as &$row)if(($row['id']??'')===$id){$row['name']=$name;$row['description']=$description;$found=true;break;}unset($row);return $rows;});
+  $icons=['chat','users','home','heart','star','code','book','globe','briefcase'];if(!in_array($icon,$icons,true))out(422,['error'=>'أيقونة المجتمع غير صالحة']);
+  if(!preg_match('/^#[0-9a-fA-F]{6}$/',$color))out(422,['error'=>'لون المجتمع غير صالح']);
+  $found=false;arbnt_write('communities',static function($rows)use($id,$name,$nameEn,$description,$icon,$color,&$found){foreach($rows as &$row)if(($row['id']??'')===$id){$row['name']=$name;$row['name_en']=$nameEn;$row['description']=$description;$row['icon']=$icon;$row['color']=$color;$found=true;break;}unset($row);return $rows;});
   if(!$found)out(404,['error'=>'المجتمع غير موجود']);audit('admin_community_update',$id);out(200,['ok'=>true]);
  }
  if($action==='admin-community-delete'){
@@ -422,10 +425,13 @@ try{
   arbnt_write('users',function($items)use($u,$bio,$theme){foreach($items as &$item)if($item['id']===$u['id']){$item['bio']=$bio;$item['profile_theme']=$theme;}unset($item);return $items;});out(200,['ok'=>true]);
  }
  if($action==='community-create'){
-  $name=clean($b['name']??'',80);$description=trim((string)($b['description']??''));
+  $name=clean($b['name']??'',80);$nameEn=trim((string)($b['name_en']??''));$description=trim((string)($b['description']??''));$icon=(string)($b['icon']??'chat');$color=(string)($b['color']??'#0869b1');
+  if($nameEn!==''&&(!preg_match('/^[A-Za-z0-9][A-Za-z0-9 &._-]{1,79}$/',$nameEn)))out(422,['error'=>'الاسم الإنجليزي غير صالح']);
   if(strlen($description)>500)out(422,['error'=>'وصف طويل']);
+  $icons=['chat','users','home','heart','star','code','book','globe','briefcase'];if(!in_array($icon,$icons,true))out(422,['error'=>'أيقونة المجتمع غير صالحة']);
+  if(!preg_match('/^#[0-9a-fA-F]{6}$/',$color))out(422,['error'=>'لون المجتمع غير صالح']);
   $slug=strtolower(trim((string)($b['slug']??'')));if(!preg_match('/^[a-z0-9-]{3,40}$/',$slug))out(422,['error'=>'المعرف 3-40 حرفاً إنجليزياً أو رقماً أو شرطة']);
-  $created=null;arbnt_write('communities',function($items)use($name,$description,$slug,$u,&$created){foreach($items as $item)if(($item['slug']??'')===$slug)return $items;$created=['id'=>bin2hex(random_bytes(12)),'slug'=>$slug,'name'=>$name,'description'=>$description,'owner_id'=>$u['id'],'created_at'=>gmdate('c')];$items[]=$created;return $items;});
+  $created=null;arbnt_write('communities',function($items)use($name,$nameEn,$description,$slug,$icon,$color,$u,&$created){foreach($items as $item)if(($item['slug']??'')===$slug)return $items;$created=['id'=>bin2hex(random_bytes(12)),'slug'=>$slug,'name'=>$name,'name_en'=>$nameEn,'description'=>$description,'icon'=>$icon,'color'=>$color,'owner_id'=>$u['id'],'created_at'=>gmdate('c')];$items[]=$created;return $items;});
   if(!$created)out(409,['error'=>'معرف المجتمع مستخدم']);out(201,['item'=>$created]);
  }
  if($action==='post'){
