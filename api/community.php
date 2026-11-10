@@ -198,7 +198,7 @@ try{
   if($action==='favorites'){ $me=requireUser();$ids=arbnt_read('favorites');$mine=array_column(array_values(array_filter($ids,fn($v)=>($v['user_id']??'')===$me['id'])),'post_id');$items=array_values(array_filter(arbnt_read('posts'),fn($v)=>in_array($v['id'],$mine,true)));out(200,['ids'=>$mine,'items'=>enrichPosts($items,$me)]);}
   if($action==='posts'){
    $posts=arbnt_read('posts');$community=(string)($_GET['community']??'');if($community!=='')$posts=array_values(array_filter($posts,fn($p)=>($p['community_id']??'')===$community));
-   $posts=array_reverse($posts);$page=max(1,min(100000,(int)($_GET['page']??1)));$per=10;$me=user();
+   $posts=array_reverse($posts);usort($posts,static function($a,$b)use($community){$pa=$community===''?(!empty($a['pinned_home'])?2:0):(!empty($a['pinned_community'])?1:0);$pb=$community===''?(!empty($b['pinned_home'])?2:0):(!empty($b['pinned_community'])?1:0);return $pb<=>$pa;});$page=max(1,min(100000,(int)($_GET['page']??1)));$per=10;$me=user();
    out(200,['items'=>enrichPosts(array_slice($posts,($page-1)*$per,$per),$me),'total'=>count($posts),'page'=>$page,'per_page'=>$per]);
   }
   if($action==='post-detail'){
@@ -294,6 +294,12 @@ try{
   $id=trim((string)($b['id']??''));$now=gmdate('c');
   arbnt_write('notifications',function($rows)use($u,$id,$now){foreach($rows as &$row){if(($row['user_id']??'')!==$u['id'])continue;if($id===''||($row['id']??'')===$id){$row['read_at']=$now;if($id!=='')break;}}unset($row);return $rows;});
   out(200,['ok'=>true]);
+ }
+ if($action==='admin-post-pin'){
+  admin();$id=clean($b['id']??'',64);$scope=(string)($b['scope']??'');$pinned=($b['pinned']??false)===true;
+  if(!in_array($scope,['home','community'],true))out(422,['error'=>'نوع التثبيت غير صالح']);
+  $found=false;arbnt_write('posts',static function($rows)use($id,$scope,$pinned,&$found){foreach($rows as &$row){if(($row['id']??'')!==$id)continue;$found=true;$row[$scope==='home'?'pinned_home':'pinned_community']=$pinned;break;}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'الموضوع غير موجود']);audit('admin_post_pin',$id.':'.$scope.':'.($pinned?'1':'0'));out(200,['ok'=>true,'pinned'=>$pinned]);
  }
  if($action==='post-update'){
   $id=clean($b['id']??'',64);$title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);$community=(string)($b['community_id']??'');
