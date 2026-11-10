@@ -210,7 +210,6 @@ try{
    $found['community_name']=$cm['name']??'عام';$found['community_name_en']=$cm['name_en']??'';$found['community_icon']=$cm['icon']??'chat';$found['community_color']=$cm['color']??'#0869b1';out(200,['item'=>$found]);
   }
   if($action==='comments'){
-   throttle('read:'.($_SERVER['REMOTE_ADDR']??'unknown'),1);
    $id=(string)($_GET['post']??'');
    out(200,['items'=>array_values(array_filter(arbnt_read('comments'),fn($c)=>($c['post_id']??'')===$id))]);
   }
@@ -455,9 +454,9 @@ try{
   arbnt_write('comments',function($a)use($comment){$a[]=$comment;return $a;});
   $targets=[];$postOwner=(string)($post['author_id']??'');
   if($postOwner===''){foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),(string)($post['author']??''))===0){$postOwner=(string)($member['id']??'');break;}}
-  if($postOwner!==''&&$postOwner!==$u['id'])$targets[$postOwner]=['type'=>'post_reply','text'=>$u['username'].' رد على موضوعك: '.($post['title']??'')];
-  if($parent){$parentOwner=(string)($parent['author_id']??'');if($parentOwner===''){foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),(string)($parent['author']??''))===0){$parentOwner=(string)($member['id']??'');break;}}if($parentOwner!==''&&$parentOwner!==$u['id'])$targets[$parentOwner]=['type'=>'comment_reply','text'=>$u['username'].' رد على تعليقك في: '.($post['title']??'')];}
-  if($targets){arbnt_write('notifications',function($rows)use($targets,$post,$comment){foreach($targets as $uid=>$info)$rows[]=['id'=>bin2hex(random_bytes(12)),'user_id'=>$uid,'type'=>$info['type'],'text'=>$info['text'],'post_id'=>$post['id'],'comment_id'=>$comment['id'],'read_at'=>'','created_at'=>gmdate('c')];if(count($rows)>3000)$rows=array_slice($rows,-3000);return $rows;});}
+  if($postOwner!==''&&$postOwner!==$u['id'])$targets[$postOwner]=['type'=>'post_reply','text'=>$u['username'].' رد على موضوعك: '.($post['title']??''),'actor'=>$u['username'],'post_title'=>(string)($post['title']??'')];
+  if($parent){$parentOwner=(string)($parent['author_id']??'');if($parentOwner===''){foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),(string)($parent['author']??''))===0){$parentOwner=(string)($member['id']??'');break;}}if($parentOwner!==''&&$parentOwner!==$u['id'])$targets[$parentOwner]=['type'=>'comment_reply','text'=>$u['username'].' رد على تعليقك في: '.($post['title']??''),'actor'=>$u['username'],'post_title'=>(string)($post['title']??'')];}
+  if($targets){arbnt_write('notifications',function($rows)use($targets,$post,$comment){foreach($targets as $uid=>$info)$rows[]=['id'=>bin2hex(random_bytes(12)),'user_id'=>$uid,'type'=>$info['type'],'text'=>$info['text'],'actor'=>$info['actor']??'','post_title'=>$info['post_title']??'','post_id'=>$post['id'],'comment_id'=>$comment['id'],'read_at'=>'','created_at'=>gmdate('c')];if(count($rows)>3000)$rows=array_slice($rows,-3000);return $rows;});}
   out(201,['item'=>$comment]);
  }
  out(404,['error'=>'غير موجود']);
