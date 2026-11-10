@@ -21,35 +21,72 @@ function audit(string $event,string $subject=''):void{
  $line=json_encode(['at'=>gmdate('c'),'event'=>$event,'subject'=>substr($subject,0,64),'ip_hash'=>hash('sha256',(string)($_SERVER['REMOTE_ADDR']??''))],JSON_UNESCAPED_UNICODE)."\n";
  file_put_contents($path,$line,FILE_APPEND|LOCK_EX);@chmod($path,0600);
 }
-function sendLink(string $email,string $type,string $raw):bool{
- $host=(string)($_SERVER['HTTP_HOST']??'');
- if(!preg_match('/^[a-z0-9.-]+(?::[0-9]{1,5})?$/i',$host))return false;
- $domain=strtolower((string)parse_url('https://'.$host,PHP_URL_HOST));
+function smtpRead($socket):string{
+ $text='';
+ while(!feof($socket)){
+  $line=fgets($socket,2048);if($line===false)break;$text.=$line;
+  if(strlen($line)>=4&&$line[3]===' ')break;
+ }
+ return $text;
+}
+function smtpExpect($socket,array $codes):string{
+ $reply=smtpRead($socket);$code=(int)substr($reply,0,3);
+ if(!in_array($code,$codes,true))throw new RuntimeException('SMTP '.$code);
+ return $reply;
+}
+function smtpCommand($socket,string $command,array $codes):string{
+ if(fwrite($socket,$command."\r\n")===false)throw new RuntimeException('SMTP write failed');
+ return smtpExpect($socket,$codes);
+}
+function smtpSend(array $cfg,string $to,string $subject,string $body):bool{
+ $host=trim((string)($cfg['host']??''));$port=(int)($cfg['port']??587);$enc=(string)($cfg['encryption']??'tls');
+ $user=(string)($cfg['username']??'');$pass=(string)($cfg['password']??'');$from=(string)($cfg['from_email']??$user);$fromName=trim((string)($cfg['from_name']??'ARBNT'));
+ if(!$host||$port<1||$port>65535||!filter_var($from,FILTER_VALIDATE_EMAIL)||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
+ $target=($enc==='ssl'?'ssl://':'').$host.':'.$port;$errno=0;$errstr='';
+ $socket=@stream_socket_client($target,$errno,$errstr,10,STREAM_CLIENT_CONNECT);
+ if(!$socket)return false;
+ stream_set_timeout($socket,12);
+ try{
+  smtpExpect($socket,[220]);$hello=preg_replace('/[^a-z0-9.-]/i','',(string)($_SERVER['HTTP_HOST']??'localhost'))?:'localhost';
+  smtpCommand($socket,'EHLO '.$hello,[250]);
+  if($enc==='tls'){
+   smtpCommand($socket,'STARTTLS',[220]);
+   if(!stream_socket_enable_crypto($socket,true,STREAM_CRYPTO_METHOD_TLS_CLIENT))throw new RuntimeException('SMTP TLS failed');
+   smtpCommand($socket,'EHLO '.$hello,[250]);
+  }
+  if($user!==''){
+   smtpCommand($socket,'AUTH LOGIN',[334]);smtpCommand($socket,base64_encode($user),[334]);smtpCommand($socket,base64_encode($pass),[235]);
+  }
+  smtpCommand($socket,'MAIL FROM:<'.$from.'>',[250]);smtpCommand($socket,'RCPT TO:<'.$to.'>',[250,251]);smtpCommand($socket,'DATA',[354]);
+  $safeSubject=function_exists('mb_encode_mimeheader')?mb_encode_mimeheader($subject,'UTF-8','B',"\r\n"):'=?UTF-8?B?'.base64_encode($subject).'?=';
+  $safeName=function_exists('mb_encode_mimeheader')?mb_encode_mimeheader($fromName,'UTF-8','B',"\r\n"):'=?UTF-8?B?'.base64_encode($fromName).'?=';
+  $headers=['Date: '.date(DATE_RFC2822),'From: '.$safeName.' <'.$from.'>','To: <'.$to.'>','Subject: '.$safeSubject,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: 8bit'];
+  $payload=implode("\r\n",$headers)."\r\n\r\n".str_replace("\n.","\n..",str_replace(["\r\n","\r"],"\n",$body));
+  if(fwrite($socket,str_replace("\n","\r\n",$payload)."\r\n.\r\n")===false)throw new RuntimeException('SMTP data failed');
+  smtpExpect($socket,[250]);@smtpCommand($socket,'QUIT',[221,250]);fclose($socket);return true;
+ }catch(Throwable $e){error_log('ARBNT SMTP: '.$e->getMessage());fclose($socket);return false;}
+}
+function sendMailMessage(string $to,string $subject,string $body):bool{
+ $cfg=arbnt_config();$mail=is_array($cfg['mail']??null)?$cfg['mail']:[];
+ if(($mail['driver']??'mail')==='smtp'&&!empty($mail['host']))return smtpSend($mail,$to,$subject,$body);
+ $host=(string)($_SERVER['HTTP_HOST']??'');$domain=strtolower((string)parse_url('https://'.$host,PHP_URL_HOST));
  if(!$domain||!preg_match('/^[a-z0-9.-]+$/',$domain))return false;
- $page=$type==='verify'?'login.html':'forgot.html';
- $param=$type==='verify'?'verify':'reset';
- $script=(string)($_SERVER['SCRIPT_NAME']??'/api/community.php');
- $base=rtrim(dirname(dirname($script)),'/');
+ $from=(string)($mail['from_email']??('no-reply@'.$domain));if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='no-reply@'.$domain;
+ $headers="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nFrom: ARBNT <".$from.">\r\nReply-To: ".$from."\r\n";
+ $sent=false;try{$sent=@mail($to,$subject,$body,$headers,'-f'.$from);}catch(Throwable $e){}
+ if(!$sent){try{$sent=@mail($to,$subject,$body,$headers);}catch(Throwable $e){}}
+ return $sent;
+}
+function sendLink(string $email,string $type,string $raw):bool{
+ $host=(string)($_SERVER['HTTP_HOST']??'');if(!preg_match('/^[a-z0-9.-]+(?::[0-9]{1,5})?$/i',$host))return false;
+ $page=$type==='verify'?'login.html':'forgot.html';$param=$type==='verify'?'verify':'reset';
+ $script=(string)($_SERVER['SCRIPT_NAME']??'/api/community.php');$base=rtrim(dirname(dirname($script)),'/');
  $url='https://'.$host.$base.'/'.$page.'?'.$param.'='.rawurlencode($raw);
  $subject=$type==='verify'?'تفعيل عضويتك في ARBNT':'استعادة كلمة المرور في ARBNT';
- $from='no-reply@'.$domain;
- $headers=[
-  'MIME-Version: 1.0',
-  'Content-Type: text/plain; charset=UTF-8',
-  'Content-Transfer-Encoding: 8bit',
-  'From: ARBNT <'.$from.'>',
-  'Reply-To: '.$from,
-  'X-Mailer: PHP/'.PHP_VERSION
- ];
  $body=$type==='verify'
   ?"مرحباً بك في ARBNT\n\nلتفعيل عضويتك افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب التسجيل فتجاهل الرسالة."
   :"لاستعادة كلمة المرور افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب الاستعادة فتجاهل الرسالة.";
- $headerText=implode("\r\n",$headers);
- $sent=false;
- try{$sent=@mail($email,$subject,$body,$headerText,'-f'.$from);}catch(Throwable $e){}
- if(!$sent){try{$sent=@mail($email,$subject,$body,$headerText);}catch(Throwable $e){}}
- if(!$sent)audit('mail_failed',$type.':'.substr(hash('sha256',$email),0,12));
- return $sent;
+ $sent=sendMailMessage($email,$subject,$body);if(!$sent)audit('mail_failed',$type.':'.substr(hash('sha256',$email),0,12));return $sent;
 }
 function out(int $code,array $data):never{arbnt_json($code,$data);}
 function body():array{
