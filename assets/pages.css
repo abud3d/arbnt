@@ -8,3 +8,12 @@ html.dark{color-scheme:dark;--bg:#15191e;--ink:#f3f4f6;--muted:#aeb6c2;--line:#3
 .tree-comment{margin-inline-start:calc(var(--depth,0) * 18px);border-inline-start:2px solid var(--line);padding-inline-start:10px}
 .comment-head{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
 .comment-actions{display:flex;gap:6px;margin-top:4px}
+
+/* v0.6.1 profile redesign */
+.profile-hero{border:1px solid var(--line);border-radius:16px;padding:24px;background:var(--bg);transition:background .15s ease,border-color .15s ease}
+.profile-theme-default{background:var(--bg)}
+.profile-theme-sand{background:#f7f0e3}.profile-theme-sky{background:#eaf4fb}.profile-theme-mint{background:#eaf7f1}.profile-theme-rose{background:#f8ecef}.profile-theme-slate{background:#eef1f4}
+html.dark .profile-theme-sand{background:#2c271f}html.dark .profile-theme-sky{background:#1d2933}html.dark .profile-theme-mint{background:#1c2b26}html.dark .profile-theme-rose{background:#2c2226}html.dark .profile-theme-slate{background:#252a30}
+.profile-copy h1{margin:0 0 2px}.profile-bio-row{display:flex;align-items:flex-start;gap:10px}.profile-bio-row p{margin:10px 0 0;flex:1}.profile-edit{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.profile-colors{border:0;padding:0;margin:0}.profile-colors legend{font-weight:700;font-size:13px;margin-bottom:8px}.profile-colors #themeChoices{display:flex;gap:8px;flex-wrap:wrap}.profile-colors button{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);padding:0}.profile-colors button.selected{outline:2px solid var(--blue);outline-offset:2px}.profile-colors [data-theme=default]{background:var(--bg)}.profile-colors [data-theme=sand]{background:#e5d3b2}.profile-colors [data-theme=sky]{background:#b9daf0}.profile-colors [data-theme=mint]{background:#bde3d2}.profile-colors [data-theme=rose]{background:#e7c0ca}.profile-colors [data-theme=slate]{background:#c8d0d8}
+.profile-posts .discussion-card{padding:18px 0!important}
