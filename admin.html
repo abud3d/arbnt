@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#ffffff">
 <title>مركز إدارة ARBNT | شبكة العرب</title>
-<link rel="stylesheet" href="assets/admin.css?v=0.6.2">
-<script src="assets/admin.js?v=0.6.2" defer></script>
+<link rel="stylesheet" href="assets/admin.css?v=0.6.3">
+<script src="assets/admin.js?v=0.6.3" defer></script>
 </head>
 <body>
 <header class="header"><div class="head-inner">
@@ -102,5 +102,5 @@
 </main>
 </div>
 <dialog id="postDialog" aria-labelledby="postDialogTitle"><h2 id="postDialogTitle">تعديل المنشور</h2><form id="postEditForm" class="form-stack"><input type="hidden" name="id"><label>العنوان<input name="title" maxlength="180" required></label><label>المحتوى<textarea name="text" maxlength="8000" required></textarea></label><label>المجتمع<select name="community_id" id="postEditCommunity"><option value="">عام</option></select></label><label>رابط صورة HTTPS (اختياري)<input name="image" type="url" placeholder="https://..."></label><div class="dialog-actions"><button type="submit" class="btn primary">حفظ التعديل</button><button type="button" class="btn" data-close="postDialog">إلغاء</button></div></form></dialog>
-<dialog id="communityDialog" aria-labelledby="communityDialogTitle"><h2 id="communityDialogTitle">تعديل المجتمع</h2><form id="communityEditForm" class="form-stack"><input type="hidden" name="id"><label>اسم المجتمع<input name="name" maxlength="80" required></label><label>التعريف<textarea name="description" maxlength="500"></textarea></label><div class="dialog-actions"><button type="submit" class="btn primary">حفظ التعديل</button><button type="button" class="btn" data-close="communityDialog">إلغاء</button></div></form></dialog>
+<dialog id="communityDialog" aria-labelledby="communityDialogTitle"><h2 id="communityDialogTitle">تعديل المجتمع</h2><form id="communityEditForm" class="form-stack"><input type="hidden" name="id"><label>اسم المجتمع<input name="name" maxlength="80" required></label><label>الاسم بالإنجليزية<input name="name_en" maxlength="80"></label><label>الأيقونة<select name="icon"><option value="chat">نقاش</option><option value="users">مجتمع</option><option value="home">منزل</option><option value="heart">قلب</option><option value="star">نجمة</option><option value="code">برمجة</option><option value="book">كتاب</option><option value="globe">عالمي</option><option value="briefcase">أعمال</option></select></label><label>لون الاسم<input name="color" type="color" value="#0869b1"></label><label>التعريف<textarea name="description" maxlength="500"></textarea></label><div class="dialog-actions"><button type="submit" class="btn primary">حفظ التعديل</button><button type="button" class="btn" data-close="communityDialog">إلغاء</button></div></form></dialog>
 </body></html>
