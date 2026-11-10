@@ -354,6 +354,11 @@ try{
   $ok=sendMailMessage($target,'اختبار بريد ARBNT',"هذه رسالة اختبار من ARBNT.\nإذا وصلتك فالربط البريدي يعمل.");
   audit($ok?'admin_mail_test_sent':'admin_mail_test_failed',$u['id']);if(!$ok)out(502,['error'=>'فشل إرسال رسالة الاختبار. تحقق من بيانات SMTP أو إعداد البريد في الاستضافة']);out(200,['ok'=>true,'message'=>'تم إرسال رسالة الاختبار']);
  }
+ if($action==='admin-comment-update'){
+  admin();$id=clean($b['id']??'',64);$text=clean($b['text']??'',3000);$found=false;
+  arbnt_write('comments',static function($rows)use($id,$text,&$found){foreach($rows as &$row){if(($row['id']??'')===$id){$row['text']=$text;$row['updated_at']=gmdate('c');$found=true;break;}}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'التعليق غير موجود']);audit('admin_comment_update',$id);out(200,['ok'=>true]);
+ }
  if($action==='admin-post-update'){
   admin();$id=clean($b['id']??'',64);$title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);
   $community=(string)($b['community_id']??'');$valid=$community==='';foreach(arbnt_read('communities') as $cm)if(($cm['id']??'')===$community)$valid=true;
@@ -411,9 +416,10 @@ try{
   $parent=null;if($replyTo!==''){foreach(arbnt_read('comments') as $row){if(($row['id']??'')===$replyTo&&($row['post_id']??'')===$postId){$parent=$row;break;}}if(!$parent)out(422,['error'=>'الرد المحدد غير موجود']);}
   $comment=['id'=>bin2hex(random_bytes(12)),'post_id'=>$postId,'text'=>$text,'author'=>$u['username'],'author_id'=>$u['id'],'reply_to'=>$parent['id']??'','created_at'=>gmdate('c')];
   arbnt_write('comments',function($a)use($comment){$a[]=$comment;return $a;});
-  $targets=[];
-  if(($post['author_id']??'')!==$u['id'])$targets[(string)$post['author_id']]=['type'=>'post_reply','text'=>$u['username'].' رد على موضوعك: '.($post['title']??'')];
-  if($parent&&($parent['author_id']??'')!==$u['id'])$targets[(string)$parent['author_id']]=['type'=>'comment_reply','text'=>$u['username'].' رد على تعليقك في: '.($post['title']??'')];
+  $targets=[];$postOwner=(string)($post['author_id']??'');
+  if($postOwner===''){foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),(string)($post['author']??''))===0){$postOwner=(string)($member['id']??'');break;}}
+  if($postOwner!==''&&$postOwner!==$u['id'])$targets[$postOwner]=['type'=>'post_reply','text'=>$u['username'].' رد على موضوعك: '.($post['title']??'')];
+  if($parent){$parentOwner=(string)($parent['author_id']??'');if($parentOwner===''){foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['username']??''),(string)($parent['author']??''))===0){$parentOwner=(string)($member['id']??'');break;}}if($parentOwner!==''&&$parentOwner!==$u['id'])$targets[$parentOwner]=['type'=>'comment_reply','text'=>$u['username'].' رد على تعليقك في: '.($post['title']??'')];}
   if($targets){arbnt_write('notifications',function($rows)use($targets,$post,$comment){foreach($targets as $uid=>$info)$rows[]=['id'=>bin2hex(random_bytes(12)),'user_id'=>$uid,'type'=>$info['type'],'text'=>$info['text'],'post_id'=>$post['id'],'comment_id'=>$comment['id'],'read_at'=>'','created_at'=>gmdate('c')];if(count($rows)>3000)$rows=array_slice($rows,-3000);return $rows;});}
   out(201,['item'=>$comment]);
  }
