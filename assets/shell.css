@@ -69,3 +69,14 @@ html[dir="ltr"] .back-arrow svg{transform:rotate(180deg)}
 #createCommunity.create-action{width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;display:inline-grid!important;place-items:center!important}
 .mobile-drawer .sidebar-extras a{font-size:12px}
 }
+
+/* v0.6.8 navigation and scrollbar correction */
+.app-sidebar,.mobile-drawer{overflow-x:hidden!important;overscroll-behavior:contain;scrollbar-width:none}
+.app-sidebar::-webkit-scrollbar,.mobile-drawer::-webkit-scrollbar{display:none}
+.app-sidebar nav,.mobile-drawer nav,.sidebar-extras{min-width:0;max-width:100%;overflow-x:hidden}
+.app-sidebar a,.mobile-drawer a,.sidebar-extras a{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.mobile-drawer{box-sizing:border-box}
+html[dir="rtl"] .mobile-drawer{transform:translateX(105%)}
+html[dir="rtl"] body.drawer-open .mobile-drawer{transform:translateX(0)}
+html[dir="ltr"] .mobile-drawer{transform:translateX(-105%)}
+html[dir="ltr"] body.drawer-open .mobile-drawer{transform:translateX(0)}
