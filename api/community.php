@@ -77,15 +77,16 @@ function sendMailMessage(string $to,string $subject,string $body):bool{
  if(!$sent){try{$sent=@mail($to,$subject,$body,$headers);}catch(Throwable $e){}}
  return $sent;
 }
-function sendLink(string $email,string $type,string $raw):bool{
+function sendLink(string $email,string $type,string $raw,string $username=''):bool{
  $host=(string)($_SERVER['HTTP_HOST']??'');if(!preg_match('/^[a-z0-9.-]+(?::[0-9]{1,5})?$/i',$host))return false;
  $page=$type==='verify'?'login.html':'forgot.html';$param=$type==='verify'?'verify':'reset';
  $script=(string)($_SERVER['SCRIPT_NAME']??'/api/community.php');$base=rtrim(dirname(dirname($script)),'/');
  $url='https://'.$host.$base.'/'.$page.'?'.$param.'='.rawurlencode($raw);
  $subject=$type==='verify'?'تفعيل عضويتك في ARBNT':'استعادة كلمة المرور في ARBNT';
+ $hello=$username!==''?"مرحباً ".$username:"مرحباً بك";
  $body=$type==='verify'
-  ?"مرحباً بك في ARBNT\n\nلتفعيل عضويتك افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب التسجيل فتجاهل الرسالة."
-  :"لاستعادة كلمة المرور افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب الاستعادة فتجاهل الرسالة.";
+  ?$hello." في ARBNT\n\nاسم المستخدم: ".$username."\n\nلتفعيل عضويتك افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب التسجيل فتجاهل الرسالة."
+  :$hello."\n\n".($username!==''?"اسم المستخدم: ".$username."\n\n":"")."لاستعادة كلمة المرور افتح الرابط التالي خلال 30 دقيقة:\n".$url."\n\nإذا لم تطلب الاستعادة فتجاهل الرسالة.";
  $sent=sendMailMessage($email,$subject,$body);if(!$sent)audit('mail_failed',$type.':'.substr(hash('sha256',$email),0,12));return $sent;
 }
 function out(int $code,array $data):never{arbnt_json($code,$data);}
@@ -191,6 +192,14 @@ try{
    $posts=array_reverse($posts);$page=max(1,min(100000,(int)($_GET['page']??1)));
    out(200,['items'=>array_slice($posts,($page-1)*20,20),'total'=>count($posts),'page'=>$page]);
   }
+  if($action==='post-detail'){
+   $id=(string)($_GET['id']??'');$found=null;
+   foreach(arbnt_read('posts') as $post)if(($post['id']??'')===$id){$found=$post;break;}
+   if(!$found)out(404,['error'=>'المنشور غير موجود']);
+   $me=user();$found['can_edit']=$me&&((($me['id']??'')===($found['author_id']??''))||($me['role']??'')==='admin');
+   $cm=null;foreach(arbnt_read('communities') as $row)if(($row['id']??'')===($found['community_id']??'')){$cm=$row;break;}
+   $found['community_name']=$cm['name']??'عام';out(200,['item'=>$found]);
+  }
   if($action==='comments'){
    throttle('read:'.($_SERVER['REMOTE_ADDR']??'unknown'),1);
    $id=(string)($_GET['post']??'');
@@ -211,7 +220,7 @@ try{
   $email=strtolower(clean($b['email']??'',254));if(!filter_var($email,FILTER_VALIDATE_EMAIL))out(422,['error'=>'بريد غير صالح']);
   $raw=bin2hex(random_bytes(32));$found=false;
   arbnt_write('users',function($a)use($email,$raw,&$found){foreach($a as &$v){if(strcasecmp((string)($v['email']??''),$email)===0){$v['reset_hash']=hash('sha256',$raw);$v['reset_exp']=time()+1800;$found=true;}}unset($v);return $a;});
-  if($found)sendLink($email,'reset',$raw);
+  if($found){$resetUser='';foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['email']??''),$email)===0){$resetUser=(string)($member['username']??'');break;}sendLink($email,'reset',$raw,$resetUser);}
   audit('password_reset_requested');out(200,['ok'=>true,'message'=>'إذا كان البريد مسجلاً فستصلك رسالة']);
  }
  if($action==='reset'){
@@ -244,7 +253,7 @@ try{
   });
   if($conflict==='username')out(409,['error'=>'اسم المستخدم مستخدم مسبقاً']);
   if($conflict==='email')out(409,['error'=>'البريد الإلكتروني مستخدم مسبقاً']);
-  $sent=sendLink($email,'verify',$raw);audit($sent?'registered_mail_sent':'registered_mail_failed',$name);
+  $sent=sendLink($email,'verify',$raw,$name);audit($sent?'registered_mail_sent':'registered_mail_failed',$name);
   out(201,['ok'=>true,'mail_sent'=>$sent,'message'=>$sent?'تم التسجيل. أرسلنا رابط التفعيل إلى بريدك؛ افتحه لإكمال العضوية.':'تم التسجيل، لكن خادم الاستضافة لم يرسل بريد التفعيل. أعد الإرسال من نفس الصفحة أو راجع إعداد البريد في الاستضافة.']);
  }
  if($action==='resend-verification'){
@@ -252,27 +261,35 @@ try{
   $email=strtolower(clean($b['email']??'',254));if(!filter_var($email,FILTER_VALIDATE_EMAIL))out(422,['error'=>'البريد غير صالح']);
   $raw=bin2hex(random_bytes(32));$found=false;
   arbnt_write('users',function($rows)use($email,$raw,&$found){foreach($rows as &$row){if(strcasecmp((string)($row['email']??''),$email)===0&&isset($row['verified'])&&$row['verified']===false){$row['verify_hash']=hash('sha256',$raw);$row['verify_exp']=time()+1800;$found=true;break;}}unset($row);return $rows;});
-  $sent=$found?sendLink($email,'verify',$raw):true;
+  $resendUser='';if($found){foreach(arbnt_read('users') as $member)if(strcasecmp((string)($member['email']??''),$email)===0){$resendUser=(string)($member['username']??'');break;}}$sent=$found?sendLink($email,'verify',$raw,$resendUser):true;
   audit('verification_resent',$found?'matched':'hidden');
   out(200,['ok'=>true,'mail_sent'=>$sent,'message'=>$sent?'إذا كان الحساب يحتاج تفعيل فقد أرسلنا رابطاً جديداً.':'تعذر على الخادم إرسال البريد. راجع إعداد البريد في الاستضافة.']);
  }
  if($action==='login'){
   throttle('login:'.($_SERVER['REMOTE_ADDR']??'unknown'),2);
-  $name=clean($b['username']??'',32);
-  throttle('account:'.strtolower($name),3);$password=(string)($b['password']??'');
+  $identity=clean($b['username']??'',254);
+  throttle('account:'.strtolower($identity),3);$password=(string)($b['password']??'');
   $match=null;
-  foreach(arbnt_read('users') as $u){if(hash_equals($u['username'],$name)&&password_verify($password,$u['password_hash'])){$match=$u;break;}}
-  if(!$match||!empty($match['banned'])){audit('login_failed',$name);out(401,['error'=>'بيانات الدخول غير صحيحة']);}
+  foreach(arbnt_read('users') as $u){$userMatch=strcasecmp((string)($u['username']??''),$identity)===0;$emailMatch=strcasecmp((string)($u['email']??''),strtolower($identity))===0;if(($userMatch||$emailMatch)&&password_verify($password,(string)($u['password_hash']??''))){$match=$u;break;}}
+  if(!$match||!empty($match['banned'])){audit('login_failed',$identity);out(401,['error'=>'بيانات الدخول غير صحيحة']);}
   if(isset($match['verified'])&&!$match['verified'])out(403,['error'=>'يجب تفعيل البريد قبل الدخول']);
   session_regenerate_id(true);
   $_SESSION['arbnt_user']=['id'=>$match['id'],'username'=>$match['username'],'role'=>$match['role']??'member','session_version'=>$match['session_version']??0];
-  audit('login_success',$name);
+  audit('login_success',(string)$match['username']);
   $_SESSION['arbnt_csrf']=bin2hex(random_bytes(24));
   out(200,['user'=>user(),'csrf'=>$_SESSION['arbnt_csrf']]);
  }
  if($action==='logout'){audit('logout');$_SESSION=[];session_regenerate_id(true);out(200,['ok'=>true]);}
  $u=requireUser();
  throttle('write:'.$u['id'],2);
+ if($action==='post-update'){
+  $id=clean($b['id']??'',64);$title=clean($b['title']??'',180);$text=clean($b['text']??'',8000);$community=(string)($b['community_id']??'');
+  $valid=$community==='';foreach(arbnt_read('communities') as $cm)if(($cm['id']??'')===$community)$valid=true;if(!$valid)out(422,['error'=>'المجتمع غير موجود']);
+  $image=trim((string)($b['image']??''));if($image!==''&&(strlen($image)>1000||!filter_var($image,FILTER_VALIDATE_URL)||strtolower((string)parse_url($image,PHP_URL_SCHEME))!=='https'))out(422,['error'=>'رابط الصورة يجب أن يكون HTTPS']);
+  $found=false;$allowed=false;
+  arbnt_write('posts',function($rows)use($id,$title,$text,$community,$image,$u,&$found,&$allowed){foreach($rows as &$row){if(($row['id']??'')!==$id)continue;$found=true;$allowed=(($row['author_id']??'')===$u['id'])||(($u['role']??'')==='admin');if($allowed){$row['title']=$title;$row['text']=$text;$row['community_id']=$community;$row['image']=$image;$row['updated_at']=gmdate('c');}break;}unset($row);return $rows;});
+  if(!$found)out(404,['error'=>'المنشور غير موجود']);if(!$allowed)out(403,['error'=>'لا تملك صلاحية تعديل هذا المنشور']);audit('post_update',$id);out(200,['ok'=>true]);
+ }
  if($action==='admin-storage-migrate'){
   admin();$password=(string)($b['password']??'');$valid=false;
   foreach(arbnt_read('users') as $member){if(($member['id']??'')===$u['id']&&password_verify($password,(string)($member['password_hash']??'')))$valid=true;}
