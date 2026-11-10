@@ -154,3 +154,13 @@ html[dir="ltr"] .back-arrow svg{transform:rotate(180deg)}
 #createCommunity.create-action{width:40px!important;height:40px!important;min-width:40px!important;padding:0!important;display:inline-grid!important;place-items:center!important}
 .mobile-drawer .sidebar-extras a{font-size:12px}
 }
+
+/* v0.6.8 consistent navigation arrows and unobtrusive scrolling */
+.back-arrow svg{transform:none!important}
+html[dir="rtl"] .back-arrow svg{transform:scaleX(-1)!important}
+html[dir="ltr"] .back-arrow svg{transform:none!important}
+.community-item>.ui-icon:last-child svg{transform:none}
+html[dir="rtl"] .community-item>.ui-icon:last-child svg{transform:scaleX(-1)}
+html[dir="ltr"] .community-item>.ui-icon:last-child svg{transform:none}
+.app-sidebar,.mobile-drawer{overflow-x:hidden!important;scrollbar-width:none}
+.app-sidebar::-webkit-scrollbar,.mobile-drawer::-webkit-scrollbar{display:none}
